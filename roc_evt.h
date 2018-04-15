@@ -26,8 +26,10 @@
 struct roc_evt_loop;
 
 /* Types and data structures */
-typedef void roc_io_proc(struct roc_evt_loop *eventLoop, int fd, void *client_data, int mask);
-typedef int roc_time_proc(struct roc_evt_loop *eventLoop, int64_t id, void *client_data);
+typedef void roc_io_proc(struct roc_evt_loop *eventLoop,
+                         int fd, void *client_data, int mask);
+typedef int roc_time_proc(struct roc_evt_loop *eventLoop,
+                          int64_t id, void *client_data);
 
 /* File event structure */
 typedef struct roc_io_evt

@@ -73,10 +73,10 @@ static inline uint64_t __ilog2_u64(uint64_t n)
 	return fls64(n) - 1;
 }
 
-#define ilog2(n)				    	\
-(						            			\
-	__builtin_constant_p(n) ? (	\
-		(n) < 2 ? 0 :			    		\
+#define ilog2(n)					\
+(									\
+	__builtin_constant_p(n) ? (		\
+		(n) < 2 ? 0 :				\
 		(n) & (1ULL << 63) ? 63 :	\
 		(n) & (1ULL << 62) ? 62 :	\
 		(n) & (1ULL << 61) ? 61 :	\
@@ -139,18 +139,18 @@ static inline uint64_t __ilog2_u64(uint64_t n)
 		(n) & (1ULL <<  4) ?  4 :	\
 		(n) & (1ULL <<  3) ?  3 :	\
 		(n) & (1ULL <<  2) ?  2 :	\
-		1 ) :											\
+		1 ) :						\
 	    (sizeof(n) <= 4) ?			\
-	    __ilog2_u32(n) :				\
-	    __ilog2_u64(n)					\
+	    __ilog2_u32(n) :			\
+	    __ilog2_u64(n)				\
  )
 
-#define rounddown_pow_of_two(n)	\
+#define rounddown_pow_of_two(n)		\
 (__builtin_constant_p(n) ?			\
-((1UL << ilog2(n))) :						\
+((1UL << ilog2(n))) :				\
 __rounddown_pow_of_two(n))
 
-#define roundup_pow_of_two(n)										\
-(__builtin_constant_p(n) ?											\
+#define roundup_pow_of_two(n)					\
+(__builtin_constant_p(n) ?						\
 ((n == 1) ? 1 : (1UL << (ilog2((n)-1) + 1))) :	\
  __roundup_pow_of_two(n))

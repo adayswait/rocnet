@@ -49,8 +49,8 @@ static inline uint32_t roc_ringbuf_unused(roc_ringbuf *self)
 }
 
 static inline uint32_t roc_ringbuf_write(roc_ringbuf *self,
-																				 const byte *data,
-																				 uint32_t len)
+										 const byte *data,
+										 uint32_t len)
 {
 	uint32_t tail_capacity;
 	len = min(len, roc_ringbuf_unused(self));
@@ -64,8 +64,8 @@ static inline uint32_t roc_ringbuf_write(roc_ringbuf *self,
 }
 
 static inline uint32_t roc_ringbuf_read(roc_ringbuf *self,
-																				byte *data,
-																				uint32_t len)
+										byte *data,
+										uint32_t len)
 {
 	uint32_t head_readable;
 	len = min(len, self->tail - self->head);
