@@ -10,6 +10,6 @@
 
 int main()
 {
-  printf("welcome to use rocnet\n");
-  return 0;
+    printf("welcome to use rocnet\n");
+    return 0;
 }

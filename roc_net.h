@@ -30,42 +30,42 @@ int roc_send(int sockfd, const void *buf, int len, int nonblock);
  */
 static inline int roc_set_tcp_nodelay(int sockfd, int flag)
 {
-  return setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag));
+    return setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag));
 }
 
 static inline int roc_set_sock_sndbuf(int sockfd, int bufsize)
 {
-  return setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &bufsize, sizeof(bufsize));
+    return setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &bufsize, sizeof(bufsize));
 }
 
 /* Set the socket send timeout (SO_SNDTIMEO socket option) to the specified
  * number of milliseconds, or disable it if the 'ms' argument is zero. */
 static inline int roc_set_sock_sndtimeo(int sockfd, int64_t ms)
 {
-  struct timeval tv;
+    struct timeval tv;
 
-  tv.tv_sec = ms / 1000;
-  tv.tv_usec = (ms % 1000) * 1000;
-  return setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+    tv.tv_sec = ms / 1000;
+    tv.tv_usec = (ms % 1000) * 1000;
+    return setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
 }
 
 /* Set the socket receive timeout (SO_RCVTIMEO socket option) to the specified
  * number of milliseconds, or disable it if the 'ms' argument is zero. */
 static inline int roc_set_sock_rcvtimeo(int sockfd, int64_t ms)
 {
-  struct timeval tv;
+    struct timeval tv;
 
-  tv.tv_sec = ms / 1000;
-  tv.tv_usec = (ms % 1000) * 1000;
-  return setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+    tv.tv_sec = ms / 1000;
+    tv.tv_usec = (ms % 1000) * 1000;
+    return setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 }
 
 static inline int roc_set_sock_reuseaddr(int sockfd)
 {
-  int yes = 1;
-  /* Make sure connection-intensive things 
+    int yes = 1;
+    /* Make sure connection-intensive things 
    * will be able to close/open sockets a zillion of times */
-  return setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
+    return setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
 }
 
 #endif /* ROC_NET_H */

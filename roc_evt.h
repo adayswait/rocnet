@@ -34,45 +34,45 @@ typedef int roc_time_proc(struct roc_evt_loop *eventLoop,
 /* File event structure */
 typedef struct roc_io_evt
 {
-  int mask; /* one of ROC_(READABLE|WRITABLE|BARRIER) */
-  roc_io_proc *iporc;
-  roc_io_proc *oproc;
-  void *client_data;
+    int mask; /* one of ROC_(INPUT_EVENT|OUTPUT_EVENT|EVENT_BARRIER) */
+    roc_io_proc *iporc;
+    roc_io_proc *oproc;
+    void *client_data;
 } roc_io_evt;
 
 /* Time event structure */
 typedef struct roc_time_evt
 {
-  int64_t id;       /* time event identifier. */
-  int64_t when_sec; /* seconds */
-  int64_t when_ms;  /* milliseconds */
-  roc_time_proc *tproc;
-  void *client_data;
-  struct roc_time_evt *next;
+    int64_t id;       /* time event identifier. */
+    int64_t when_sec; /* seconds */
+    int64_t when_ms;  /* milliseconds */
+    roc_time_proc *tproc;
+    void *client_data;
+    struct roc_time_evt *next;
 } roc_time_evt;
 
 typedef struct roc_ready_evt
 {
-  int fd;
-  int mask;
+    int fd;
+    int mask;
 } roc_ready_evt;
 
 /* State of an event based program */
 typedef struct roc_evt_loop
 {
-  int size;  /* max number of file descriptors tracked */
-  int maxfd; /* highest file descriptor currently registered */
+    int size;  /* max number of file descriptors tracked */
+    int maxfd; /* highest file descriptor currently registered */
 
-  roc_io_evt *all_io_evts; /* Registered events */
-  roc_time_evt *time_evt_head;
-  roc_ready_evt *ready_evts; /* Fired events */
+    roc_io_evt *all_io_evts; /* Registered events */
+    roc_time_evt *time_evt_head;
+    roc_ready_evt *ready_evts; /* Fired events */
 
-  int64_t time_evt_next_id;
-  time_t last_time; /* Used to detect system clock skew */
+    int64_t time_evt_next_id;
+    time_t last_time; /* Used to detect system clock skew */
 
-  int stop;
-  int epfd;
-  struct epoll_event *ret_evts;
+    int stop;
+    int epfd;
+    struct epoll_event *ret_evts;
 } roc_evt_loop;
 
 roc_evt_loop *roc_create_evt_loop(int size);
