@@ -6,6 +6,7 @@
 
 #include "roc_evt.h"
 #include "roc_net.h"
+#include "roc_ringbuf.h"
 
 int main()
 {
