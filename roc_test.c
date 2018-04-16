@@ -36,5 +36,6 @@ int main()
     wrote_len = roc_ringbuf_write(rb, write_data + write_data_offset, 8);
     write_data_offset += wrote_len;
     printf("\t%u bytes wrote,roc_ringbuf data:%8.8s\n", wrote_len, rb->data);
+    roc_ringbuf_del(rb);
     return 0;
 }
