@@ -32,6 +32,7 @@ static inline roc_ringbuf *roc_ringbuf_new(uint32_t size)
     self->size = size;
     self->head = 0;
     self->tail = 0;
+    return self;
 }
 
 static inline void roc_ringbuf_del(roc_ringbuf *self)
@@ -45,7 +46,7 @@ static inline void roc_ringbuf_del(roc_ringbuf *self)
  */
 static inline uint32_t roc_ringbuf_unused(roc_ringbuf *self)
 {
-    return self->size - self->head + self->tail;
+    return self->size + self->head - self->tail;
 }
 
 static inline uint32_t roc_ringbuf_write(roc_ringbuf *self,
