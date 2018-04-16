@@ -5,7 +5,7 @@
 /**
  * 返回参数x的最高有效bit位的序号,若无有效bit位则返回0
  */
-static inline uint8_t fls32(int32_t x)
+static inline uint8_t fls32(uint32_t x)
 {
     uint8_t r = 32;
 
@@ -154,4 +154,3 @@ __rounddown_pow_of_two(n))
 (__builtin_constant_p(n) ?                      \
 ((n == 1) ? 1 : (1UL << (ilog2((n)-1) + 1))) :  \
  __roundup_pow_of_two(n))
- 
