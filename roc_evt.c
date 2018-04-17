@@ -31,7 +31,7 @@ roc_evt_loop *roc_create_evt_loop(int size)
     if (roc_iom_create(evt_loop) == -1)
         goto err;
     /* Events with mask == ROC_NONE_EVENT are not set. 
-   * So let's initialize the vector with it. */
+     * So let's initialize the vector with it. */
     for (i = 0; i < size; i++)
         evt_loop->all_io_evts[i].mask = ROC_NONE_EVENT;
     return evt_loop;
@@ -94,7 +94,7 @@ int roc_evt_loop_resize(roc_evt_loop *evt_loop, int newsize)
     evt_loop->size = newsize;
 
     /* Make sure that if we created new slots, 
-   * they are initialized with an ROC_NONE_EVENT mask. */
+     * they are initialized with an ROC_NONE_EVENT mask. */
     for (i = evt_loop->maxfd + 1; i < newsize; i++)
     {
         evt_loop->all_io_evts[i].mask = ROC_NONE_EVENT;
@@ -170,7 +170,7 @@ void roc_iom_del_evt(roc_evt_loop *evt_loop, int fd, int delmask)
     else
     {
         /* Note, Kernel < 2.6.9 requires a non null event pointer even for
-     * EPOLL_CTL_DEL. */
+         * EPOLL_CTL_DEL. */
         epoll_ctl(evt_loop->epfd, EPOLL_CTL_DEL, fd, &ee);
     }
 }
@@ -188,7 +188,7 @@ void roc_del_io_evt(roc_evt_loop *evt_loop, int fd, int mask)
     }
 
     /* We want to always remove ROC_EVENT_BARRIER 
-   * if set when ROC_OUTPUT_EVENT is removed. */
+     * if set when ROC_OUTPUT_EVENT is removed. */
     if (mask & ROC_OUTPUT_EVENT)
     {
         mask |= ROC_EVENT_BARRIER;
@@ -217,7 +217,7 @@ int roc_iom_add_evt(roc_evt_loop *evt_loop, int fd, int mask)
 
     struct epoll_event ee = {0}; /* avoid valgrind warning */
     /* If the fd was already monitored for some event, we need a MOD
-   * operation. Otherwise we need an ADD operation. */
+     * operation. Otherwise we need an ADD operation. */
     int op = evt_loop->all_io_evts[fd].mask == ROC_NONE_EVENT
                  ? EPOLL_CTL_ADD
                  : EPOLL_CTL_MOD;
@@ -348,13 +348,13 @@ int roc_process_time_evts(roc_evt_loop *evt_loop)
     time_t now = time(NULL);
 
     /* If the system clock is moved to the future, and then set back to the
-   * right value, time events may be delayed in a random way. Often this
-   * means that scheduled operations will not be performed soon enough.
-   *
-   * Here we try to detect system clock skews, and force all the time
-   * events to be processed ASAP when this happens: the idea is that
-   * processing events earlier is less dangerous than delaying them
-   * indefinitely, and practice suggests it is. */
+     * right value, time events may be delayed in a random way. Often this
+     * means that scheduled operations will not be performed soon enough.
+     *
+     * Here we try to detect system clock skews, and force all the time
+     * events to be processed ASAP when this happens: the idea is that
+     * processing events earlier is less dangerous than delaying them
+     * indefinitely, and practice suggests it is. */
     if (now < evt_loop->last_time)
     {
         te = evt_loop->time_evt_head;
@@ -392,10 +392,10 @@ int roc_process_time_evts(roc_evt_loop *evt_loop)
         }
 
         /* Make sure we don't process time events created by time events in
-     * this iteration. Note that this check is currently useless: we always
-     * add new timers on the head, however if we change the implementation
-     * detail, this check may be useful again: we keep it here for future
-     * defense. */
+         * this iteration. Note that this check is currently useless: we always
+         * add new timers on the head, however if we change the implementation
+         * detail, this check may be useful again: we keep it here for future
+         * defense. */
         if (te->id > max_id)
         {
             te = te->next;
@@ -449,9 +449,9 @@ int roc_process_evts(roc_evt_loop *evt_loop, int flags)
         return 0;
     }
     /* Note that we want call select() even if there are no
-   * file events to process as long as we want to process time
-   * events, in order to sleep until the next time event is ready
-   * to fire. */
+     * file events to process as long as we want to process time
+     * events, in order to sleep until the next time event is ready
+     * to fire. */
     if (evt_loop->maxfd != -1 ||
         ((flags & ROC_TIME_EVENTS) && !(flags & ROC_DONT_WAIT)))
     {
@@ -471,7 +471,7 @@ int roc_process_evts(roc_evt_loop *evt_loop, int flags)
             tvp = &tv;
 
             /* How many milliseconds we need 
-       * to wait for the next time event to fire? */
+             * to wait for the next time event to fire? */
             int64_t ms = (shortest->when_sec - now_sec) * 1000 +
                          shortest->when_ms - now_ms;
 
@@ -489,8 +489,8 @@ int roc_process_evts(roc_evt_loop *evt_loop, int flags)
         else
         {
             /* If we have to check for events but need to return
-       * ASAP because of ROC_DONT_WAIT we need to set the timeout
-       * to zero */
+             * ASAP because of ROC_DONT_WAIT we need to set the timeout
+             * to zero */
             if (flags & ROC_DONT_WAIT)
             {
                 tv.tv_sec = tv.tv_usec = 0;
@@ -504,7 +504,7 @@ int roc_process_evts(roc_evt_loop *evt_loop, int flags)
         }
 
         /* Call the multiplexing API, will return only on timeout or when
-     * some event fires. */
+         * some event fires. */
         numevents = roc_iom_poll(evt_loop, tvp);
 
         for (i = 0; i < numevents; i++)
@@ -515,24 +515,24 @@ int roc_process_evts(roc_evt_loop *evt_loop, int flags)
             int fired = 0; /* Number of events fired for current fd. */
 
             /* Normally we execute the readable event first, and the writable
-       * event laster. This is useful as sometimes we may be able
-       * to serve the reply of a query immediately after processing the
-       * query.
-       *
-       * However if ROC_EVENT_BARRIER is set in the mask, our application is
-       * asking us to do the reverse: never fire the writable event
-       * after the readable. In such a case, we invert the calls.
-       * This is useful when, for instance, we want to do things
-       * in the beforeSleep() hook, like fsynching a file to disk,
-       * before replying to a client. */
+             * event laster. This is useful as sometimes we may be able
+             * to serve the reply of a query immediately after processing the
+             * query.
+             *
+             * However if ROC_EVENT_BARRIER is set in the mask, our application is
+             * asking us to do the reverse: never fire the writable event
+             * after the readable. In such a case, we invert the calls.
+             * This is useful when, for instance, we want to do things
+             * in the beforeSleep() hook, like fsynching a file to disk,
+             * before replying to a client. */
             int invert = fe->mask & ROC_EVENT_BARRIER;
 
             /* Note the "fe->mask & mask & ..." code: maybe an already
-       * processed event removed an element that fired and we still
-       * didn't processed, so we check if the event is still valid.
-       *
-       * Fire the readable event if the call sequence is not
-       * inverted. */
+             * processed event removed an element that fired and we still
+             * didn't processed, so we check if the event is still valid.
+             *
+             * Fire the readable event if the call sequence is not
+             * inverted. */
             if (!invert && fe->mask & mask & ROC_INPUT_EVENT)
             {
                 fe->iporc(evt_loop, fd, fe->client_data, mask);
@@ -550,7 +550,7 @@ int roc_process_evts(roc_evt_loop *evt_loop, int flags)
             }
 
             /* If we have to invert the call, fire the readable event now
-       * after the writable one. */
+             * after the writable one. */
             if (invert && fe->mask & mask & ROC_INPUT_EVENT)
             {
                 if (!fired || fe->oproc != fe->iporc)

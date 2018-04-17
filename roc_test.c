@@ -7,35 +7,47 @@
 #include "roc_evt.h"
 #include "roc_net.h"
 #include "roc_ringbuf.h"
+int print_data(byte *data, int len)
+{
+    int i;
+    for (i = 0; i < len; i++)
+    {
+        printf("%1.1s", data + i);
+    }
+    printf("\n");
+}
 
 int main()
 {
     printf("welcome to use rocnet\n\n");
 
     printf(">>test ringbuf\n");
-    roc_ringbuf *rb = roc_ringbuf_new(6);
-    printf("\troc_ringbuf created, size is %u\n", rb->size);
-    char *write_data = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    uint32_t write_data_offset = 0;
-    printf("\tdata to write:%12.12s\n", write_data);
-    uint32_t wrote_len = roc_ringbuf_write(rb, write_data, 12);
-    write_data_offset += wrote_len;
-    printf("\t%u bytes wrote,roc_ringbuf data:%8.8s\n", wrote_len, rb->data);
-    char *read_data = malloc(32);
-    printf("\ttry to read 5 bytes from ringbuf\n");
-    uint32_t read_len = roc_ringbuf_read(rb, read_data, 5);
-    printf("\t%u bytes read, data is:%5.5s\n", read_len, read_data);
-    printf("\tdata to write:%4.4s\n", write_data + write_data_offset);
-    wrote_len = roc_ringbuf_write(rb, write_data + write_data_offset, 4);
-    write_data_offset += wrote_len;
-    printf("\t%u bytes wrote,roc_ringbuf data:%8.8s\n", wrote_len, rb->data);
-    printf("\ttry to read 6 bytes from ringbuf\n");
-    read_len = roc_ringbuf_read(rb, read_data, 6);
-    printf("\t%u bytes read, data is:%6.6s\n", read_len, read_data);
-    printf("\tdata to write:%8.8s\n", write_data + write_data_offset);
-    wrote_len = roc_ringbuf_write(rb, write_data + write_data_offset, 8);
-    write_data_offset += wrote_len;
-    printf("\t%u bytes wrote,roc_ringbuf data:%8.8s\n", wrote_len, rb->data);
+    uint32_t read_len, wrote_len;
+    char *r1 = malloc(1024);
+    uint32_t read_offset = 0;
+    char *w1 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    char *w2 = "abcdefghijklmnopqrstuvwxyz";
+    roc_ringbuf *rb = roc_ringbuf_new(1);
+    roc_ringbuf_write(rb, "A", 1);
+    roc_ringbuf_write(rb, "B", 1);
+    roc_ringbuf_write(rb, "CD", 2);
+    roc_ringbuf_write(rb, "E", 1);
+    roc_ringbuf_write(rb, "FGHI", 4);
+    roc_ringbuf_write(rb, "JKLMNOP~", 8);
+    roc_ringbuf_write(rb, w1, 36);
+    read_offset += roc_ringbuf_read(rb, r1 + read_offset, 10);
+    roc_ringbuf_write(rb, "-", 1);
+    roc_ringbuf_write(rb, w2, 26);
+    read_offset += roc_ringbuf_read(rb, r1 + read_offset, 21);
+    roc_ringbuf_write(rb, "-", 1);
+    roc_ringbuf_write(rb, w1, 36);
+    read_offset += roc_ringbuf_read(rb, r1 + read_offset, 21);
+    roc_ringbuf_write(rb, "-", 1);
+    roc_ringbuf_write(rb, w1, 36);
+    read_offset += roc_ringbuf_read(rb, r1 + read_offset, 10);
+    read_offset += roc_ringbuf_read(rb, r1 + read_offset, 72);
+    read_offset += roc_ringbuf_read(rb, r1 + read_offset, 16);
+    print_data(r1, 1024);
     roc_ringbuf_del(rb);
     return 0;
 }

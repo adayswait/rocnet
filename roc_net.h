@@ -64,7 +64,7 @@ static inline int roc_set_sock_reuseaddr(int sockfd)
 {
     int yes = 1;
     /* Make sure connection-intensive things 
-   * will be able to close/open sockets a zillion of times */
+     * will be able to close/open sockets a zillion of times */
     return setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
 }
 

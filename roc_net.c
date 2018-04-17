@@ -21,8 +21,8 @@ int roc_set_fd_nonblock(int fd, int non_block)
     int flags;
 
     /* Set the socket blocking (if non_block is zero) or non-blocking.
-   * Note that fcntl(2) for F_GETFL and F_SETFL can't be
-   * interrupted by a signal. */
+     * Note that fcntl(2) for F_GETFL and F_SETFL can't be
+     * interrupted by a signal. */
     if ((flags = fcntl(fd, F_GETFL)) == -1)
     {
         return -1;
@@ -57,8 +57,8 @@ int roc_set_tcp_keepalive(int sockfd, int interval)
 
 #ifdef __linux__
     /* Default settings are more or less garbage, with the keepalive time
-   * set to 7200 by default on Linux. Modify settings to make the feature
-   * actually useful. */
+     * set to 7200 by default on Linux. Modify settings to make the feature
+     * actually useful. */
 
     /* Send first probe after interval. */
     val = interval;
@@ -68,8 +68,8 @@ int roc_set_tcp_keepalive(int sockfd, int interval)
     }
 
     /* Send next probes after the specified interval. Note that we set the
-   * delay as interval / 3, as we send three probes before detecting
-   * an error (see the next setsockopt call). */
+     * delay as interval / 3, as we send three probes before detecting
+     * an error (see the next setsockopt call). */
     val = interval / 3;
     if (val == 0)
     {
@@ -82,7 +82,7 @@ int roc_set_tcp_keepalive(int sockfd, int interval)
     }
 
     /* Consider the socket in error state after three we send three ACK
-   * probes without getting a reply. */
+     * probes without getting a reply. */
     val = 3;
     if (setsockopt(sockfd, IPPROTO_TCP, TCP_KEEPCNT, &val, sizeof(val)) < 0)
     {
@@ -169,8 +169,8 @@ int roc_connect(char *addr, int port, char *source_addr, int flags)
     for (p = servinfo; p != NULL; p = p->ai_next)
     {
         /* Try to create the socket and to connect it.
-     * If we fail in the socket() call, or on connect(), we retry with
-     * the next entry in servinfo. */
+         * If we fail in the socket() call, or on connect(), we retry with
+         * the next entry in servinfo. */
         if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1)
             continue;
         if (roc_set_sock_reuseaddr(sockfd) == -1)
@@ -202,7 +202,7 @@ int roc_connect(char *addr, int port, char *source_addr, int flags)
         if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1)
         {
             /* If the socket is non-blocking, it is ok for connect() to
-       * return an EINPROGRESS error here. */
+             * return an EINPROGRESS error here. */
             if (errno == EINPROGRESS && flags & (1 << 0))
                 goto end;
             close(sockfd);
@@ -211,7 +211,7 @@ int roc_connect(char *addr, int port, char *source_addr, int flags)
         }
 
         /* If we ended an iteration of the for loop without errors, we
-     * have a connected socket. Let's return to the caller. */
+         * have a connected socket. Let's return to the caller. */
         goto end;
     }
 
@@ -226,7 +226,7 @@ end:
     freeaddrinfo(servinfo);
 
     /* Handle best effort binding: if a binding address was used, but it is
-   * not possible to create a socket, try again without a binding address. */
+     * not possible to create a socket, try again without a binding address. */
     if (sockfd == -1 && source_addr && (flags & (1 << 1)))
     {
         return roc_connect(addr, port, NULL, flags);
