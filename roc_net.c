@@ -16,11 +16,11 @@
 #include <stdio.h>
 #include <stdint.h>
 
-int roc_set_fd_nonblock(int fd, int non_block)
+int roc_set_fd_nonblock(int fd, int nonblock)
 {
     int flags;
 
-    /* Set the socket blocking (if non_block is zero) or non-blocking.
+    /* Set the socket blocking (if nonblock is zero) or non-blocking.
      * Note that fcntl(2) for F_GETFL and F_SETFL can't be
      * interrupted by a signal. */
     if ((flags = fcntl(fd, F_GETFL)) == -1)
@@ -28,7 +28,7 @@ int roc_set_fd_nonblock(int fd, int non_block)
         return -1;
     }
 
-    if (non_block)
+    if (nonblock)
     {
         flags |= O_NONBLOCK;
     }
@@ -304,7 +304,7 @@ static int roc_set_sock_ipv6only(int sockfd)
     return 0;
 }
 
-int roc_tcp_svr(int port, char *bindaddr, int af, int backlog)
+int roc_tcp_svr(int port, char *bindaddr, int domain, int backlog)
 {
     int sockfd = -1, rv;
     char _port[6]; /* strlen("65535") */
@@ -312,7 +312,7 @@ int roc_tcp_svr(int port, char *bindaddr, int af, int backlog)
 
     snprintf(_port, 6, "%d", port);
     memset(&hints, 0, sizeof(hints));
-    hints.ai_family = af;
+    hints.ai_family = domain;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE; /* No effect if bindaddr != NULL */
 
@@ -326,7 +326,7 @@ int roc_tcp_svr(int port, char *bindaddr, int af, int backlog)
         {
             continue;
         }
-        if (af == AF_INET6 && roc_set_sock_ipv6only(sockfd) == -1)
+        if (domain == AF_INET6 && roc_set_sock_ipv6only(sockfd) == -1)
         {
             goto error;
         }

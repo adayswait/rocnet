@@ -7,9 +7,9 @@
 #include <netinet/tcp.h>
 #include <stdint.h>
 
-int roc_set_fd_nonblock(int fd, int non_block);
+int roc_set_fd_nonblock(int fd, int nonblock);
 int roc_set_tcp_keepalive(int sockfd, int interval);
-int roc_tcp_svr(int port, char *bindaddr, int af, int backlog);
+int roc_tcp_svr(int port, char *bindaddr, int domain, int backlog);
 int roc_connect(char *addr, int port, char *source_addr, int flags);
 int roc_local_connect(char *path, int flags);
 int roc_accept(int sockfd, char *ip, size_t ip_len, int *port);
