@@ -7,6 +7,15 @@
 #include "roc_evt.h"
 #include "roc_net.h"
 #include "roc_ringbuf.h"
+#include "roc_threadpool.h"
+
+#define WORKER_NUMBER 10000
+
+void work(roc_work *w)
+{
+    printf("work get param %d\n", *((int *)(w->data)));
+}
+
 int print_data(byte *data, int len)
 {
     int i;
@@ -49,5 +58,19 @@ int main()
     read_offset += roc_ringbuf_read(rb, r1 + read_offset, 16);
     print_data(r1, 1024);
     roc_ringbuf_del(rb);
+
+    printf(">>test threadpool\n");
+    setenv("ROC_THREADPOOL_SIZE", "100", 1);
+    int n_arr[WORKER_NUMBER];
+    roc_work w_arr[WORKER_NUMBER];
+    int i;
+    for (i = 0; i < WORKER_NUMBER; i++)
+    {
+        roc_work w;
+        w_arr[i] = w;
+        n_arr[i] = i;
+        roc_tpwork_submit(&w_arr[i], work, &n_arr[i]);
+    }
+    sleep(100);
     return 0;
 }
