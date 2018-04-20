@@ -1,3 +1,5 @@
+#ifndef ROC_RINGBUF_H
+#define ROC_RINGBUF_H
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -5,7 +7,7 @@
 
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 
-const uint32_t MAX_RINGBUF_SIZE = 5 * 1024 * 1024; /* 5MB */
+#define MAX_RINGBUF_SIZE (5 * 1024 * 1024) /* 5MB */
 
 typedef unsigned char byte;
 
@@ -112,3 +114,10 @@ static inline uint32_t roc_ringbuf_write(roc_ringbuf *self,
     self->tail += len; /* 到达最大值后溢出, 逻辑仍然成立 */
     return len;
 }
+
+static inline uint32_t roc_ringbuf_readable(roc_ringbuf *self)
+{
+    return self->tail - self->head;
+}
+
+#endif /* ROC_RINGBUF_H */

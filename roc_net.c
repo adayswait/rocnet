@@ -619,7 +619,7 @@ int roc_recv(int sockfd, void *buf, int len, int nonblock)
 
         if (ret_len == 0) /*connection closed by client*/
         {
-            return 0;
+            return -1; /*将返回值改为-1,使外层在阻塞或非阻塞模式可以一样处理*/
         }
         if (ret_len == -1)
         {

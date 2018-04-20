@@ -1,3 +1,6 @@
+#ifndef ROC_BITOPS_H
+#define ROC_BITOPS_H
+
 #include <stdint.h>
 
 #define is_power_of_2(x) ((x) != 0 && (((x) & ((x)-1)) == 0))
@@ -154,3 +157,5 @@ __rounddown_pow_of_two(n))
 (__builtin_constant_p(n) ?                      \
 ((n == 1) ? 1 : (1UL << (ilog2((n)-1) + 1))) :  \
  __roundup_pow_of_two(n))
+
+#endif /* ROC_BITOPS_H */

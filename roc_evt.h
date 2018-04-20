@@ -8,6 +8,15 @@
 #define ROC_INPUT_EVENT 1
 #define ROC_OUTPUT_EVENT 2
 
+#define ROC_SOCK_CONNECT ROC_INPUT_EVENT
+#define ROC_SOCK_DATA ROC_INPUT_EVENT
+#define ROC_SOCK_SEND ROC_OUTPUT_EVENT
+#define ROC_SOCK_CLOSE 4
+#define ROC_SOCK_ERROR 8
+#define ROC_SOCK_ALLEVT (ROC_INPUT_EVENT | ROC_OUTPUT_EVENT)
+
+#define ROC_SOCK_EVTEND 16
+
 /* With WRITABLE, never fire the event if the READABLE event 
  * already fired in the same event loop iteration. 
  * Useful when you want to persist things to disk before sending replies, 
@@ -26,9 +35,9 @@
 struct roc_evt_loop;
 
 /* Types and data structures */
-typedef void roc_io_proc(struct roc_evt_loop *eventLoop,
+typedef void roc_io_proc(struct roc_evt_loop *evt_loop,
                          int fd, void *client_data, int mask);
-typedef int roc_time_proc(struct roc_evt_loop *eventLoop,
+typedef int roc_time_proc(struct roc_evt_loop *evt_loop,
                           int64_t id, void *client_data);
 
 /* File event structure */
