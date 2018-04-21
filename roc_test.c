@@ -9,23 +9,8 @@
 #include "roc_ringbuf.h"
 #include "roc_threadpool.h"
 #include "roc_svr.h"
+#include "roc_daemon.h"
 
-#define WORKER_NUMBER 10000
-
-void work(roc_work *w)
-{
-    printf("work get param %d\n", *((int *)(w->data)));
-}
-
-int print_data(byte *data, int len)
-{
-    int i;
-    for (i = 0; i < len; i++)
-    {
-        printf("%1.1s", data + i);
-    }
-    printf("\n");
-}
 void ondata(roc_link *link)
 {
     /*高并发时printf影响性能*/
@@ -57,6 +42,7 @@ void onconnect(roc_link *link)
 int main()
 {
     printf("welcome to use rocnet\n\n");
+    roc_daemon_start();
     roc_init();
     roc_svr *svr = roc_svr_new(3000);
     roc_svr_on(svr, ROC_SOCK_CONNECT, onconnect);
