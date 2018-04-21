@@ -126,12 +126,6 @@ int roc_add_io_evt(roc_evt_loop *evt_loop, int fd, int mask,
     }
     roc_io_evt *io_evt = &evt_loop->all_io_evts[fd];
 
-    if (roc_iom_add_evt(evt_loop, fd, mask) == -1)
-    {
-        return -1;
-    }
-
-    io_evt->mask |= mask;
     if (mask & ROC_EVENT_INPUT)
     {
         io_evt->iporc = proc;
@@ -141,10 +135,17 @@ int roc_add_io_evt(roc_evt_loop *evt_loop, int fd, int mask,
         io_evt->oproc = proc;
     }
     io_evt->custom_data = custom_data;
+
+    if (roc_iom_add_evt(evt_loop, fd, mask) == -1)
+    {
+        io_evt->mask = ROC_EVENT_NONE;
+        return -1;
+    }
     if (fd > evt_loop->maxfd)
     {
-        evt_loop->maxfd = fd;
+        __sync_lock_test_and_set(&evt_loop->maxfd, fd);
     }
+    io_evt->mask |= mask;
     return 0;
 }
 
@@ -212,7 +213,7 @@ void roc_del_io_evt(roc_evt_loop *evt_loop, int fd, int mask)
                 break;
             }
         }
-        evt_loop->maxfd = i;
+        __sync_lock_test_and_set(&evt_loop->maxfd, i);
     }
 }
 

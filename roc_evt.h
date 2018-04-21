@@ -64,7 +64,7 @@ typedef struct roc_ready_evt
 typedef struct roc_evt_loop
 {
     int size;  /* max number of file descriptors tracked */
-    int maxfd; /* highest file descriptor currently registered */
+    volatile int maxfd; /* highest file descriptor currently registered */
 
     roc_io_evt *all_io_evts; /* Registered events */
     roc_time_evt *time_evt_head;
