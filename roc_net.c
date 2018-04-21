@@ -609,6 +609,11 @@ int roc_fmt_sock(int fd, char *fmt, size_t fmt_len)
     return roc_fmt_addr(fmt, fmt_len, ip, port);
 }
 
+/**
+ * 自动recv来自sockfd的数据
+ * nonblock为0时,按阻塞模式recv,其余情况按非阻塞模式收取
+ * 正常情况返回接受的字节数,返回-1代表错误或sockfd已被对端关闭
+ */
 int roc_recv(int sockfd, void *buf, int len, int nonblock)
 {
     int recvd_bytes, ret_len;
@@ -617,7 +622,7 @@ int roc_recv(int sockfd, void *buf, int len, int nonblock)
     {
         ret_len = recv(sockfd, buf + recvd_bytes, len - recvd_bytes, 0);
 
-        if (ret_len == 0) /*connection closed by client*/
+        if (ret_len == 0) /*connection closed by peer*/
         {
             return -1; /*将返回值改为-1,使外层在阻塞或非阻塞模式可以一样处理*/
         }

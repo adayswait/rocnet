@@ -30,10 +30,10 @@ roc_evt_loop *roc_create_evt_loop(int size)
     evt_loop->maxfd = -1;
     if (roc_iom_create(evt_loop) == -1)
         goto err;
-    /* Events with mask == ROC_NONE_EVENT are not set. 
+    /* Events with mask == ROC_EVENT_NONE are not set. 
      * So let's initialize the vector with it. */
     for (i = 0; i < size; i++)
-        evt_loop->all_io_evts[i].mask = ROC_NONE_EVENT;
+        evt_loop->all_io_evts[i].mask = ROC_EVENT_NONE;
     return evt_loop;
 
 err:
@@ -94,10 +94,10 @@ int roc_evt_loop_resize(roc_evt_loop *evt_loop, int newsize)
     evt_loop->size = newsize;
 
     /* Make sure that if we created new slots, 
-     * they are initialized with an ROC_NONE_EVENT mask. */
+     * they are initialized with an ROC_EVENT_NONE mask. */
     for (i = evt_loop->maxfd + 1; i < newsize; i++)
     {
-        evt_loop->all_io_evts[i].mask = ROC_NONE_EVENT;
+        evt_loop->all_io_evts[i].mask = ROC_EVENT_NONE;
     }
     return 0;
 }
@@ -117,7 +117,7 @@ void roc_evt_loop_stop(roc_evt_loop *evt_loop)
 }
 
 int roc_add_io_evt(roc_evt_loop *evt_loop, int fd, int mask,
-                   roc_io_proc proc, void *client_data)
+                   roc_io_proc proc, void *custom_data)
 {
     if (fd >= evt_loop->size)
     {
@@ -132,15 +132,15 @@ int roc_add_io_evt(roc_evt_loop *evt_loop, int fd, int mask,
     }
 
     io_evt->mask |= mask;
-    if (mask & ROC_INPUT_EVENT)
+    if (mask & ROC_EVENT_INPUT)
     {
         io_evt->iporc = proc;
     }
-    if (mask & ROC_OUTPUT_EVENT)
+    if (mask & ROC_EVENT_OUTPUT)
     {
         io_evt->oproc = proc;
     }
-    io_evt->client_data = client_data;
+    io_evt->custom_data = custom_data;
     if (fd > evt_loop->maxfd)
     {
         evt_loop->maxfd = fd;
@@ -154,20 +154,20 @@ void roc_iom_del_evt(roc_evt_loop *evt_loop, int fd, int delmask)
     int mask = evt_loop->all_io_evts[fd].mask & (~delmask);
 
     ee.events = 0;
-    if (mask & ROC_INPUT_EVENT)
+    if (mask & ROC_EVENT_INPUT)
     {
         ee.events |= EPOLLIN;
     }
-    if (mask & ROC_OUTPUT_EVENT)
+    if (mask & ROC_EVENT_OUTPUT)
     {
         ee.events |= EPOLLOUT;
     }
-    if (mask & ROC_EPOLL_ET)
+    if (mask & ROC_EVENT_EPOLLET)
     {
         ee.events |= EPOLLET;
     }
     ee.data.fd = fd;
-    if (mask != ROC_NONE_EVENT)
+    if (mask != ROC_EVENT_NONE)
     {
         epoll_ctl(evt_loop->epfd, EPOLL_CTL_MOD, fd, &ee);
     }
@@ -186,28 +186,28 @@ void roc_del_io_evt(roc_evt_loop *evt_loop, int fd, int mask)
         return;
     }
     roc_io_evt *io_evt = &evt_loop->all_io_evts[fd];
-    if (io_evt->mask == ROC_NONE_EVENT)
+    if (io_evt->mask == ROC_EVENT_NONE)
     {
         return;
     }
 
     /* We want to always remove ROC_EVENT_BARRIER 
-     * if set when ROC_OUTPUT_EVENT is removed. */
-    if (mask & ROC_OUTPUT_EVENT)
+     * if set when ROC_EVENT_OUTPUT is removed. */
+    if (mask & ROC_EVENT_OUTPUT)
     {
         mask |= ROC_EVENT_BARRIER;
     }
 
     roc_iom_del_evt(evt_loop, fd, mask);
     io_evt->mask = io_evt->mask & (~mask);
-    if (fd == evt_loop->maxfd && io_evt->mask == ROC_NONE_EVENT)
+    if (fd == evt_loop->maxfd && io_evt->mask == ROC_EVENT_NONE)
     {
         /* Update the max fd */
         int i;
 
         for (i = evt_loop->maxfd - 1; i >= 0; i--)
         {
-            if (evt_loop->all_io_evts[i].mask != ROC_NONE_EVENT)
+            if (evt_loop->all_io_evts[i].mask != ROC_EVENT_NONE)
             {
                 break;
             }
@@ -222,22 +222,22 @@ int roc_iom_add_evt(roc_evt_loop *evt_loop, int fd, int mask)
     struct epoll_event ee = {0}; /* avoid valgrind warning */
     /* If the fd was already monitored for some event, we need a MOD
      * operation. Otherwise we need an ADD operation. */
-    int op = evt_loop->all_io_evts[fd].mask == ROC_NONE_EVENT
+    int op = evt_loop->all_io_evts[fd].mask == ROC_EVENT_NONE
                  ? EPOLL_CTL_ADD
                  : EPOLL_CTL_MOD;
 
     ee.events = 0;
     mask |= evt_loop->all_io_evts[fd].mask; /* Merge old events */
-    if (mask & ROC_INPUT_EVENT)
+    if (mask & ROC_EVENT_INPUT)
     {
         ee.events |= EPOLLIN;
     }
 
-    if (mask & ROC_OUTPUT_EVENT)
+    if (mask & ROC_EVENT_OUTPUT)
     {
         ee.events |= EPOLLOUT;
     }
-    if (mask & ROC_EPOLL_ET)
+    if (mask & ROC_EVENT_EPOLLET)
     {
         ee.events |= EPOLLET;
     }
@@ -285,7 +285,7 @@ void roc_add_ms_to_now(int64_t addms, int64_t *ret_sec, int64_t *ret_ms)
 }
 
 int64_t roc_add_time_evt(roc_evt_loop *evt_loop, int64_t ms,
-                         roc_time_proc *proc, void *client_data)
+                         roc_time_proc *proc, void *custom_data)
 {
     int64_t id = evt_loop->time_evt_next_id++;
     roc_time_evt *te;
@@ -298,7 +298,7 @@ int64_t roc_add_time_evt(roc_evt_loop *evt_loop, int64_t ms,
     te->id = id;
     roc_add_ms_to_now(ms, &te->when_sec, &te->when_ms);
     te->tproc = proc;
-    te->client_data = client_data;
+    te->custom_data = custom_data;
     te->next = evt_loop->time_evt_head;
     evt_loop->time_evt_head = te;
     return id;
@@ -417,7 +417,7 @@ int roc_process_time_evts(roc_evt_loop *evt_loop)
             int retval;
 
             id = te->id;
-            retval = te->tproc(evt_loop, id, te->client_data);
+            retval = te->tproc(evt_loop, id, te->custom_data);
             processed++;
             if (retval != ROC_NOMORE)
             {
@@ -542,29 +542,29 @@ int roc_process_evts(roc_evt_loop *evt_loop, int flags)
              *
              * Fire the readable event if the call sequence is not
              * inverted. */
-            if (!invert && fe->mask & mask & ROC_INPUT_EVENT)
+            if (!invert && fe->mask & mask & ROC_EVENT_INPUT)
             {
-                fe->iporc(evt_loop, fd, fe->client_data, mask);
+                fe->iporc(evt_loop, fd, fe->custom_data, mask);
                 fired++;
             }
 
             /* Fire the writable event. */
-            if (fe->mask & mask & ROC_OUTPUT_EVENT)
+            if (fe->mask & mask & ROC_EVENT_OUTPUT)
             {
                 if (!fired || fe->oproc != fe->iporc)
                 {
-                    fe->oproc(evt_loop, fd, fe->client_data, mask);
+                    fe->oproc(evt_loop, fd, fe->custom_data, mask);
                     fired++;
                 }
             }
 
             /* If we have to invert the call, fire the readable event now
              * after the writable one. */
-            if (invert && fe->mask & mask & ROC_INPUT_EVENT)
+            if (invert && fe->mask & mask & ROC_EVENT_INPUT)
             {
                 if (!fired || fe->oproc != fe->iporc)
                 {
-                    fe->iporc(evt_loop, fd, fe->client_data, mask);
+                    fe->iporc(evt_loop, fd, fe->custom_data, mask);
                     fired++;
                 }
             }
@@ -599,19 +599,19 @@ int roc_iom_poll(roc_evt_loop *evt_loop, struct timeval *tvp)
 
             if (e->events & EPOLLIN)
             {
-                mask |= ROC_INPUT_EVENT;
+                mask |= ROC_EVENT_INPUT;
             }
             if (e->events & EPOLLOUT)
             {
-                mask |= ROC_OUTPUT_EVENT;
+                mask |= ROC_EVENT_OUTPUT;
             }
             if (e->events & EPOLLERR)
             {
-                mask |= ROC_OUTPUT_EVENT;
+                mask |= ROC_EVENT_OUTPUT;
             }
             if (e->events & EPOLLHUP)
             {
-                mask |= ROC_OUTPUT_EVENT;
+                mask |= ROC_EVENT_OUTPUT;
             }
             evt_loop->ready_evts[i].fd = e->data.fd;
             evt_loop->ready_evts[i].mask = mask;

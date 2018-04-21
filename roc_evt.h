@@ -4,25 +4,18 @@
 #include <time.h>
 #include <stdint.h>
 
-#define ROC_NONE_EVENT 0
-#define ROC_INPUT_EVENT 1
-#define ROC_OUTPUT_EVENT 2
-
-#define ROC_SOCK_CONNECT ROC_INPUT_EVENT
-#define ROC_SOCK_DATA ROC_INPUT_EVENT
-#define ROC_SOCK_SEND ROC_OUTPUT_EVENT
-#define ROC_SOCK_CLOSE 4
-#define ROC_SOCK_ERROR 8
-#define ROC_EPOLL_ET 16
-#define ROC_SOCK_ALLEVT (ROC_INPUT_EVENT | ROC_OUTPUT_EVENT | ROC_EPOLL_ET)
-
-#define ROC_SOCK_EVTEND 16
-
-/* With WRITABLE, never fire the event if the READABLE event 
- * already fired in the same event loop iteration. 
- * Useful when you want to persist things to disk before sending replies, 
- * and want to do that in a group fashion. */
+#define ROC_EVENT_NONE 0
+#define ROC_EVENT_INPUT 1
+#define ROC_EVENT_OUTPUT 2
 #define ROC_EVENT_BARRIER 4
+#define ROC_EVENT_EPOLLET 8
+#define ROC_EVENT_IOET (ROC_EVENT_INPUT | ROC_EVENT_OUTPUT | ROC_EVENT_EPOLLET)
+
+#define ROC_SOCK_CONNECT 0
+#define ROC_SOCK_DATA 0
+#define ROC_SOCK_DRAIN 1
+#define ROC_SOCK_CLOSE 2
+#define ROC_SOCK_EVTEND 2
 
 #define ROC_NOMORE -1
 #define ROC_DELETED_EVENT_ID -1
@@ -37,9 +30,9 @@ struct roc_evt_loop;
 
 /* Types and data structures */
 typedef void roc_io_proc(struct roc_evt_loop *evt_loop,
-                         int fd, void *client_data, int mask);
+                         int fd, void *custom_data, int mask);
 typedef int roc_time_proc(struct roc_evt_loop *evt_loop,
-                          int64_t id, void *client_data);
+                          int64_t id, void *custom_data);
 
 /* File event structure */
 typedef struct roc_io_evt
@@ -47,7 +40,7 @@ typedef struct roc_io_evt
     int mask; /* one of ROC_(INPUT_EVENT|OUTPUT_EVENT|EVENT_BARRIER) */
     roc_io_proc *iporc;
     roc_io_proc *oproc;
-    void *client_data;
+    void *custom_data;
 } roc_io_evt;
 
 /* Time event structure */
@@ -57,7 +50,7 @@ typedef struct roc_time_evt
     int64_t when_sec; /* seconds */
     int64_t when_ms;  /* milliseconds */
     roc_time_proc *tproc;
-    void *client_data;
+    void *custom_data;
     struct roc_time_evt *next;
 } roc_time_evt;
 
@@ -91,11 +84,11 @@ void roc_evt_loop_start(roc_evt_loop *evt_loop);
 void roc_evt_loop_stop(roc_evt_loop *evt_loop);
 
 int roc_add_io_evt(roc_evt_loop *evt_loop, int fd, int mask,
-                   roc_io_proc proc, void *client_data);
+                   roc_io_proc proc, void *custom_data);
 void roc_del_io_evt(roc_evt_loop *evt_loop, int fd, int mask);
 
 int64_t roc_add_time_evt(roc_evt_loop *evt_loop, int64_t ms,
-                         roc_time_proc *proc, void *client_data);
+                         roc_time_proc *proc, void *custom_data);
 
 int roc_del_time_evt(roc_evt_loop *evt_loop, int64_t id);
 
