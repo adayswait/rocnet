@@ -32,9 +32,19 @@ void ondata(roc_link *link)
     /*printf("data recv from %s:%d in thread%d\n",
            link->ip, link->port, pthread_self());*/
     int len = link->ibuf->tail - link->ibuf->head;
+    if (len == 0)
+    {
+        return;
+    }
     char *data = malloc(len);
+    if (!data)
+    {
+        return;
+    }
     roc_ringbuf_read(link->ibuf, data, len);
     roc_ringbuf_write(link->obuf, data, len);
+    roc_smart_send(link);
+    free(data);
 }
 
 void onconnect(roc_link *link)

@@ -30,6 +30,7 @@ struct roc_link_s
     char *ip;
     roc_ringbuf *ibuf;
     roc_ringbuf *obuf;
+    roc_evt_loop *evt_loop;
     roc_handle_func *handler[ROC_SOCK_EVTEND];
 };
 int roc_init();
@@ -42,5 +43,6 @@ int roc_svr_stop(roc_svr *svr);
 static int roc_dispatch_ioevt(roc_link *link, int mask);
 static void roc_pretreat_data(roc_evt_loop *el, int fd,
                               void *custom_data, int mask);
+int roc_smart_send(roc_link *link);
 
 #endif /* ROC_SVR_H */

@@ -86,9 +86,10 @@ static void roc_auto_accept(roc_evt_loop *el, int fd, void *custom_data, int mas
         roc_dispatch_ioevt(link, ROC_SOCK_ALLEVT);
     }
 }
-static int roc_smart_send(roc_evt_loop *el, roc_link *link)
+int roc_smart_send(roc_link *link)
 {
     roc_ringbuf *rb = link->obuf;
+    roc_evt_loop *el = link->evt_loop;
 
     uint32_t len = rb->tail - rb->head;
     /* first get the data from fifo->out until the end of the buffer */
@@ -106,10 +107,20 @@ static int roc_smart_send(roc_evt_loop *el, roc_link *link)
             roc_link_del(link);
             return -1;
         }
+        if (ret == 0)
+        {
+            return 0;
+        }
         rb->head += ret;
+
+        if (ret != head_readable)
+        {
+            return roc_smart_send(link);
+        }
     }
+
     uint32_t tail_readable = len - head_readable;
-    if (head_readable && head_readable == ret && tail_readable)
+    if (tail_readable)
     {
         ret = roc_send(link->fd, rb->data, tail_readable, 1);
         if (ret == -1)
@@ -118,48 +129,78 @@ static int roc_smart_send(roc_evt_loop *el, roc_link *link)
             roc_link_del(link);
             return -1;
         }
+        if (ret == 0)
+        {
+            return 0;
+        }
         rb->head += ret;
+        if (ret != tail_readable)
+        {
+            return roc_smart_send(link);
+        }
     }
+
     return 0;
 }
 
-static int roc_smart_recv(roc_evt_loop *el, roc_link *link)
+static int roc_smart_recv(roc_link *link)
 {
     roc_ringbuf *rb = link->obuf;
+    roc_evt_loop *el = link->evt_loop;
 
-    uint32_t tail_capacity;
     uint32_t len = roc_ringbuf_unused(rb);
+    if (len == 0)
+    {
+        roc_ringbuf_resize(rb, rb->size + 1);
+        return roc_smart_recv(link);
+    }
     /* first put the data starting from fifo->in to buffer end */
-    tail_capacity = min(len, rb->size - (rb->tail & (rb->size - 1)));
+    uint32_t tail_capacity = min(len, rb->size - (rb->tail & (rb->size - 1)));
 
-    int ret = roc_recv(link->fd,
+    int ret;
+    if (tail_capacity)
+    {
+        ret = roc_recv(link->fd,
                        rb->data + (rb->tail & (rb->size - 1)),
                        tail_capacity, 1);
-    if (ret == -1) /* link closed by client or error occur */
-    {
-        roc_del_io_evt(el, link->fd, ROC_SOCK_ALLEVT);
-        roc_link_del(link);
-        return -1;
-    }
-    rb->tail += ret;
-    if (ret < tail_capacity || len == tail_capacity)
-    {
-        return 0;
+        if (ret == -1) /* link closed by client or error occur */
+        {
+            roc_del_io_evt(el, link->fd, ROC_SOCK_ALLEVT);
+            roc_link_del(link);
+            return -1;
+        }
+        if (ret == 0)
+        {
+            return 0;
+        }
+        rb->tail += ret;
+        if (ret < tail_capacity)
+        {
+            return 0;
+        }
     }
 
     uint32_t head_capacity = len - tail_capacity;
-    ret = roc_recv(link->fd, rb->data, head_capacity, 1);
-    if (ret == -1) /* link closed by client or error occur */
+    if (head_capacity)
     {
-        roc_del_io_evt(el, link->fd, ROC_SOCK_ALLEVT);
-        roc_link_del(link);
-        return -1;
+        ret = roc_recv(link->fd, rb->data, head_capacity, 1);
+        if (ret == -1) /* link closed by client or error occur */
+        {
+            roc_del_io_evt(el, link->fd, ROC_SOCK_ALLEVT);
+            roc_link_del(link);
+            return -1;
+        }
+        if (ret == 0)
+        {
+            return 0;
+        }
+        rb->tail += ret;
     }
-    rb->tail += ret;
-    if (ret == head_capacity)
+
+    if (roc_ringbuf_unused(rb) == 0)
     {
         roc_ringbuf_resize(rb, rb->size + 1);
-        return roc_smart_recv(el, link);
+        return roc_smart_recv(link);
     }
     return 0;
 }
@@ -172,7 +213,7 @@ static void roc_pretreat_data(roc_evt_loop *el, int fd,
     char buffer[1024] = {0};
     if (mask & ROC_SOCK_DATA)
     {
-        if (roc_smart_recv(el, link) == 0)
+        if (roc_smart_recv(link) == 0)
         {
             if (link->handler[ROC_SOCK_DATA])
             {
@@ -190,7 +231,7 @@ static void roc_pretreat_data(roc_evt_loop *el, int fd,
         {
             return;
         }
-        if (roc_smart_send(el, link) == -1)
+        if (roc_smart_send(link) == -1)
         {
             return;
         }
@@ -206,6 +247,7 @@ static int roc_dispatch_ioevt(roc_link *link, int mask)
         roc_link_del(link);
         return -1;
     }
+    link->evt_loop = el;
     curr_loop_offset++;
     return 0;
 }

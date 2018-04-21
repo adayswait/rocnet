@@ -162,6 +162,10 @@ void roc_iom_del_evt(roc_evt_loop *evt_loop, int fd, int delmask)
     {
         ee.events |= EPOLLOUT;
     }
+    if (mask & ROC_EPOLL_ET)
+    {
+        ee.events |= EPOLLET;
+    }
     ee.data.fd = fd;
     if (mask != ROC_NONE_EVENT)
     {
@@ -233,6 +237,11 @@ int roc_iom_add_evt(roc_evt_loop *evt_loop, int fd, int mask)
     {
         ee.events |= EPOLLOUT;
     }
+    if (mask & ROC_EPOLL_ET)
+    {
+        ee.events |= EPOLLET;
+    }
+
     ee.data.fd = fd;
     if (epoll_ctl(evt_loop->epfd, op, fd, &ee) == -1)
     {
