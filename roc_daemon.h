@@ -1,3 +1,6 @@
+#ifndef ROC_DAEMON_H
+#define ROC_DAEMON_H
+
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -56,3 +59,5 @@ static int roc_daemon_start()
 
     return 0;
 }
+
+#endif /* ROC_DAEMON_H */
