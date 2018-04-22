@@ -15,4 +15,5 @@ void roc_tpwork_submit(roc_work *w,
                        void (*work)(roc_work *w),
                        void *data);
 int roc_tpwork_cancel(roc_work *w);
+int roc_thread_create(pthread_t *tid, void (*entry)(void *), void *arg);
 #endif /* THREADPOOL_H_ */
