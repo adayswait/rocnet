@@ -126,7 +126,7 @@ void roc_link_on(roc_link *link, int evt_type, roc_handle_func *handler)
 
 static int roc_smart_recv(roc_link *link)
 {
-    roc_ringbuf *rb = link->obuf;
+    roc_ringbuf *rb = link->ibuf;
     roc_evt_loop *el = link->evt_loop;
 
     uint32_t len = roc_ringbuf_unused(rb);

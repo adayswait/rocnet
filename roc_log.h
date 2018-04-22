@@ -10,6 +10,7 @@ typedef struct
 } roc_logcell;
 
 int roc_log_init();
+int roc_log_write(int level, void *buf, int len);
 
 #define ROC_LOG_STDERR(level, bufptr, buflen) \
     roc_log_write(ROC_LOG_LEVEL_STDERR, bufptr, buflen);
