@@ -6,26 +6,12 @@
 #include "roc_ringbuf.h"
 #include "roc_threadpool.h"
 
-#define ROC_LOG_LEVEL_STDERR 0
-#define ROC_LOG_LEVEL_EMERG 1
-#define ROC_LOG_LEVEL_ALERT 3
-#define ROC_LOG_LEVEL_CRIT 7
-#define ROC_LOG_LEVEL_ERR 15
-#define ROC_LOG_LEVEL_WARN 31
-#define ROC_LOG_LEVEL_NOTICE 63
-#define ROC_LOG_LEVEL_INFO 127
-#define ROC_LOG_LEVEL_DEBUG 255
-
-#define ROC_LOG_CELL_NUM 1024
-#define ROC_LOG_CELL_SIZE 1024
-
-#define ROC_LOGCELL_UNUSED 0
-#define ROC_LOGCELL_READ 1
-#define ROC_LOGCELL_WRITE 2
 pthread_mutex_t logmutex;
 pthread_cond_t logcond;
 QUEUE logq;
 pthread_t thread_id;
+
+FILE *logfs;
 
 roc_logcell *currcell;
 
@@ -54,24 +40,49 @@ static void roc_log_worker(void *arg)
         pthread_mutex_unlock(&logmutex);
 
         cell = QUEUE_DATA(q, roc_logcell, queue_node);
-        char *a = malloc(1024);
-        roc_ringbuf_read(cell->rb, a, 1024);
-        printf("%s\n", a);
-        cell->rb->head = 0;
-        cell->rb->tail = 0;
+
+        roc_ringbuf *rb = cell->rb;
+
+        uint32_t len = rb->tail - rb->head;
+        uint32_t head_n = min(len, rb->size - (rb->head & (rb->size - 1)));
+        if (head_n)
+        {
+            fwrite_unlocked(rb->data + (rb->head & (rb->size - 1)),
+                            1, head_n, logfs);
+        }
+
+        uint32_t tail_n = len - head_n;
+        if (tail_n)
+        {
+            fwrite_unlocked(rb->data, 1, tail_n, logfs);
+        }
+        rb->head += len;
+        fflush(logfs);
         __sync_lock_test_and_set(&cell->status, ROC_LOGCELL_UNUSED);
     }
 }
 
-int roc_log_init()
+int roc_log_init(const char *path)
 {
+    if (path)
+    {
+        logfs = fopen(path, "a+");
+        if (!logfs)
+        {
+            return -1;
+        }
+    }
+    else
+    {
+        logfs = stdout;
+    }
     if (pthread_mutex_init(&logmutex, NULL))
     {
-        abort();
+        return -1;
     }
     if (pthread_cond_init(&logcond, NULL))
     {
-        abort();
+        return -1;
     }
     QUEUE_INIT(&logq);
     int i;
@@ -90,7 +101,7 @@ int roc_log_init()
 
     if (roc_thread_create(&thread_id, roc_log_worker, NULL))
     {
-        abort();
+        return -1;
     }
     return 0;
 }
@@ -136,7 +147,7 @@ int roc_log_write(int level, void *buf, int len)
     roc_logcell *lastcell;
 
     roc_ringbuf_write(rb, buf, len);
-    if (rb->tail - rb->head > ROC_LOG_CELL_SIZE)
+    if (rb->tail - rb->head > 1)
     {
         lastcell = currcell;
         if (roc_logcell_get() == 0)
@@ -145,7 +156,10 @@ int roc_log_write(int level, void *buf, int len)
             QUEUE_INSERT_TAIL(&logq, &lastcell->queue_node);
             pthread_cond_signal(&logcond);
         }
+        else
+        {
+            currcell = lastcell;
+        }
     }
-
     pthread_mutex_unlock(&logmutex);
 }

@@ -13,8 +13,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef QUEUE_H_
-#define QUEUE_H_
+#ifndef ROC_QUEUE_H
+#define ROC_QUEUE_H
 
 #include <stddef.h>
 
@@ -106,4 +106,4 @@ typedef void *QUEUE[2];
     QUEUE_NEXT_PREV(q) = QUEUE_PREV(q); \
   } while (0)
 
-#endif /* QUEUE_H_ */
+#endif /* ROC_QUEUE_H */
