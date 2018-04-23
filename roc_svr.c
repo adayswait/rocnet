@@ -1,14 +1,19 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <signal.h>
 #include <sys/socket.h>
 #include "roc_svr.h"
 #include "roc_net.h"
 #include "roc_evt.h"
 #include "roc_threadpool.h"
+#include "roc_log.h"
+#include "roc_daemon.h"
 
 #define MAX_LINK_PER_SVR 65535
 #define ROC_THREAD_NUM 4
+
+int flush_log_interval = 3000;
 
 roc_work work_arr[ROC_THREAD_NUM];
 roc_evt_loop *default_loop;
@@ -21,10 +26,29 @@ static void roc_work_func(roc_work *w)
     roc_evt_loop_start(thread_loop);
 }
 
-int roc_init()
+static int roc_flush_log_func(roc_evt_loop *evt_loop,
+                              int64_t id, void *intptr_interval)
 {
+
+    roc_log_flush();
+    return *((int *)intptr_interval);
+}
+
+int roc_init(const char *log_path, int log_level)
+{
+    roc_daemon_start();
+    if (roc_log_init(log_path, log_level) == -1)
+    {
+        return -1;
+    }
     default_loop = roc_create_evt_loop(MAX_LINK_PER_SVR);
+
     if (!default_loop)
+    {
+        return -1;
+    }
+    if (roc_add_time_evt(default_loop, flush_log_interval,
+                         roc_flush_log_func, &flush_log_interval) == -1)
     {
         return -1;
     }
@@ -36,6 +60,8 @@ int roc_init()
         work_arr[i] = w;
         roc_tpwork_submit(&work_arr[i], roc_work_func, thread_loop);
     }
+    signal(SIGPIPE, SIG_IGN);
+    return 0;
 }
 int roc_run()
 {
@@ -101,6 +127,11 @@ static roc_link *roc_link_new(int fd, char *ip, int port)
         free(link);
         return NULL;
     }
+    int i;
+    for (i = 0; i < ROC_SOCK_EVTEND; i++)
+    {
+        link->handler[i] = NULL;
+    }
     link->port = port;
     link->fd = fd;
 
@@ -109,6 +140,10 @@ static roc_link *roc_link_new(int fd, char *ip, int port)
 
 static inline void roc_link_del(roc_link *link)
 {
+    if (link->handler[ROC_SOCK_CLOSE])
+    {
+        link->handler[ROC_SOCK_CLOSE](link);
+    }
     close(link->fd);
     roc_ringbuf_del(link->ibuf);
     roc_ringbuf_del(link->obuf);
@@ -120,7 +155,7 @@ void roc_link_on(roc_link *link, int evt_type, roc_handle_func *handler)
 {
     if (evt_type < ROC_SOCK_EVTEND)
     {
-        link->handler[evt_type] = handler;
+        __sync_lock_test_and_set(&link->handler[evt_type], handler);
     }
 }
 
@@ -206,7 +241,7 @@ static void roc_pretreat_data(roc_evt_loop *el, int fd,
         {
             return;
         }
-        if (roc_smart_send(link) == -1)
+        if (roc_smart_send(link, NULL, 0) == -1)
         {
             return;
         }
@@ -257,17 +292,22 @@ static void roc_auto_accept(roc_evt_loop *el, int fd, void *custom_data, int mas
             close(cfd);
             return;
         }
+
         svr->handler[ROC_SOCK_CONNECT](link);
         roc_dispatch_ioevt(link, ROC_EVENT_IOET);
     }
 }
-int roc_smart_send(roc_link *link)
+int roc_smart_send(roc_link *link, const void *buf, int len)
 {
     roc_ringbuf *rb = link->obuf;
     roc_evt_loop *el = link->evt_loop;
+    if (buf && len)
+    {
+        roc_ringbuf_write(rb, buf, len);
+    }
 
-    uint32_t len = rb->tail - rb->head;
-    uint32_t head_readable = min(len, rb->size - (rb->head & (rb->size - 1)));
+    uint32_t rblen = rb->tail - rb->head;
+    uint32_t head_readable = min(rblen, rb->size - (rb->head & (rb->size - 1)));
 
     int ret;
     if (head_readable)
@@ -289,11 +329,11 @@ int roc_smart_send(roc_link *link)
 
         if (ret != head_readable)
         {
-            return roc_smart_send(link);
+            return roc_smart_send(link, NULL, 0);
         }
     }
 
-    uint32_t tail_readable = len - head_readable;
+    uint32_t tail_readable = rblen - head_readable;
     if (tail_readable)
     {
         ret = roc_send(link->fd, rb->data, tail_readable, 1);
@@ -310,7 +350,7 @@ int roc_smart_send(roc_link *link)
         rb->head += ret;
         if (ret != tail_readable)
         {
-            return roc_smart_send(link);
+            return roc_smart_send(link, NULL, 0);
         }
     }
 

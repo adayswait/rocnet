@@ -34,10 +34,10 @@ struct roc_link_s
     roc_handle_func *handler[ROC_SOCK_EVTEND];
 };
 roc_svr *roc_svr_new(int port);
-int roc_init();
+int roc_init(const char *log_path, int log_level);
 int roc_run();
 int roc_svr_start(roc_svr *svr);
 int roc_svr_stop(roc_svr *svr);
-int roc_smart_send(roc_link *link);
+int roc_smart_send(roc_link *link, const void *buf, int len);
 
 #endif /* ROC_SVR_H */

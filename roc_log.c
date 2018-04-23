@@ -1,6 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
+#include <string.h>
+#include <signal.h>
 #include <pthread.h>
+#include <unistd.h>
 #include "roc_log.h"
 #include "roc_queue.h"
 #include "roc_ringbuf.h"
@@ -8,13 +12,12 @@
 
 pthread_mutex_t logmutex;
 pthread_cond_t logcond;
-QUEUE logq;
 pthread_t thread_id;
 
+QUEUE logq;
 FILE *logfs;
 
 roc_logcell *currcell;
-
 roc_logcell cellmgr[ROC_LOG_CELL_NUM];
 
 static void roc_log_worker(void *arg)
@@ -57,14 +60,34 @@ static void roc_log_worker(void *arg)
             fwrite_unlocked(rb->data, 1, tail_n, logfs);
         }
         rb->head += len;
-        fflush(logfs);
         __sync_lock_test_and_set(&cell->status, ROC_LOGCELL_UNUSED);
+        fflush(logfs);
     }
 }
-
-int roc_log_init(const char *path)
+static void roc_term_log(int signal)
 {
-    if (path)
+    ROC_LOG_STDERR("recv signal:%d\n", signal);
+    roc_log_flush();
+    for (;;)
+    {
+        pthread_mutex_lock(&logmutex);
+
+        if (QUEUE_EMPTY(&logq))
+        {
+            pthread_mutex_unlock(&logmutex);
+            break;
+        }
+        pthread_cond_signal(&logcond);
+        pthread_mutex_unlock(&logmutex);
+        sleep(1);
+    }
+    exit(0);
+}
+
+int roc_log_init(const char *path, int level)
+{
+
+    if (path && strlen(path) != 0)
     {
         logfs = fopen(path, "a+");
         if (!logfs)
@@ -103,6 +126,27 @@ int roc_log_init(const char *path)
     {
         return -1;
     }
+    if (level == ROC_LOG_LEVEL_STDERR ||
+        level == ROC_LOG_LEVEL_EMERG ||
+        level == ROC_LOG_LEVEL_ALERT ||
+        level == ROC_LOG_LEVEL_CRIT ||
+        level == ROC_LOG_LEVEL_ERR ||
+        level == ROC_LOG_LEVEL_WARN ||
+        level == ROC_LOG_LEVEL_NOTICE ||
+        level == ROC_LOG_LEVEL_DEBUG)
+    {
+        roc_log_level = level;
+    }
+    else
+    {
+        ROC_LOG_STDERR("invalid log level:%d\n", level);
+        return -1;
+    }
+    signal(SIGINT, roc_term_log);
+    signal(SIGTERM, roc_term_log);
+    signal(SIGSEGV, roc_term_log);
+    signal(SIGQUIT, roc_term_log);
+    signal(SIGABRT, roc_term_log);
     return 0;
 }
 static inline int roc_logcell_init(roc_logcell *cell)
@@ -116,7 +160,7 @@ static inline int roc_logcell_init(roc_logcell *cell)
     cell->status = ROC_LOGCELL_UNUSED;
     return 0;
 }
-static inline int roc_logcell_get()
+static inline roc_logcell *roc_logcell_get()
 {
     int i;
     for (i = 0; i < ROC_LOG_CELL_NUM; i++)
@@ -130,35 +174,110 @@ static inline int roc_logcell_get()
             }
             if (!cellmgr[i].rb)
             {
-                return -1;
+                return NULL;
             }
-            currcell = &cellmgr[i];
-
-            return 0;
+            return &cellmgr[i];
         }
     }
-    return -1;
+    return NULL;
 }
 
-int roc_log_write(int level, void *buf, int len)
+int roc_log_write(int level, const char *format, ...)
 {
+    char buf[ROC_LOG_CELL_SIZE];
+    int prefix_len = 0;
+    switch (level)
+    {
+    case ROC_LOG_LEVEL_STDERR:
+        prefix_len = strlen(ROC_LOG_LEVEL_STDERR_PREFIX);
+        strcpy(buf, ROC_LOG_LEVEL_STDERR_PREFIX);
+        break;
+    case ROC_LOG_LEVEL_EMERG:
+        prefix_len = strlen(ROC_LOG_LEVEL_EMERG_PREFIX);
+        strcpy(buf, ROC_LOG_LEVEL_EMERG_PREFIX);
+        break;
+    case ROC_LOG_LEVEL_ALERT:
+        prefix_len = strlen(ROC_LOG_LEVEL_ALERT_PREFIX);
+        strcpy(buf, ROC_LOG_LEVEL_ALERT_PREFIX);
+        break;
+    case ROC_LOG_LEVEL_CRIT:
+        prefix_len = strlen(ROC_LOG_LEVEL_CRIT_PREFIX);
+        strcpy(buf, ROC_LOG_LEVEL_CRIT_PREFIX);
+        break;
+    case ROC_LOG_LEVEL_ERR:
+        prefix_len = strlen(ROC_LOG_LEVEL_ERR_PREFIX);
+        strcpy(buf, ROC_LOG_LEVEL_ERR_PREFIX);
+        break;
+    case ROC_LOG_LEVEL_WARN:
+        prefix_len = strlen(ROC_LOG_LEVEL_WARN_PREFIX);
+        strcpy(buf, ROC_LOG_LEVEL_WARN_PREFIX);
+        break;
+    case ROC_LOG_LEVEL_NOTICE:
+        prefix_len = strlen(ROC_LOG_LEVEL_NOTICE_PREFIX);
+        strcpy(buf, ROC_LOG_LEVEL_NOTICE_PREFIX);
+        break;
+    case ROC_LOG_LEVEL_INFO:
+        prefix_len = strlen(ROC_LOG_LEVEL_INFO_PREFIX);
+        strcpy(buf, ROC_LOG_LEVEL_INFO_PREFIX);
+        break;
+    case ROC_LOG_LEVEL_DEBUG:
+        prefix_len = strlen(ROC_LOG_LEVEL_DEBUG_PREFIX);
+        strcpy(buf, ROC_LOG_LEVEL_DEBUG_PREFIX);
+        break;
+    default:
+        prefix_len = strlen(ROC_LOG_LEVEL_STDERR_PREFIX);
+        strcpy(buf, ROC_LOG_LEVEL_STDERR_PREFIX);
+        break;
+    }
+    va_list ap;
+    va_start(ap, format);
+    vsnprintf(buf + prefix_len, ROC_LOG_CELL_SIZE, format, ap);
+    va_end(ap);
+    int len = strlen(buf);
     pthread_mutex_lock(&logmutex);
     roc_ringbuf *rb = currcell->rb;
-    roc_logcell *lastcell;
-
-    roc_ringbuf_write(rb, buf, len);
-    if (rb->tail - rb->head > 1)
+    roc_logcell *newcell;
+    int writen_n, ret;
+    for (writen_n = 0; writen_n != len; writen_n += ret)
     {
-        lastcell = currcell;
-        if (roc_logcell_get() == 0)
+        ret = roc_ringbuf_write_rigid(rb, buf + writen_n, len - writen_n);
+        if (ret != len - writen_n) //rb is full
         {
-            lastcell->status = ROC_LOGCELL_WRITE;
-            QUEUE_INSERT_TAIL(&logq, &lastcell->queue_node);
-            pthread_cond_signal(&logcond);
+            newcell = roc_logcell_get();
+            if (!newcell)
+            {
+                writen_n += ret;
+                roc_ringbuf_write(rb, buf + writen_n, len - writen_n);
+                break;
+            }
+            else
+            {
+                currcell->status = ROC_LOGCELL_WRITE;
+                QUEUE_INSERT_TAIL(&logq, &currcell->queue_node);
+                currcell = newcell;
+                rb = currcell->rb;
+            }
         }
-        else
+    }
+    if (!QUEUE_EMPTY(&logq))
+    {
+        pthread_cond_signal(&logcond);
+    }
+    pthread_mutex_unlock(&logmutex);
+}
+
+int roc_log_flush()
+{
+    pthread_mutex_lock(&logmutex);
+    if (QUEUE_EMPTY(&logq) && currcell->rb->tail - currcell->rb->head != 0)
+    {
+        roc_logcell *newcell = roc_logcell_get();
+        if (newcell)
         {
-            currcell = lastcell;
+            currcell->status = ROC_LOGCELL_WRITE;
+            QUEUE_INSERT_TAIL(&logq, &currcell->queue_node);
+            currcell = newcell;
+            pthread_cond_signal(&logcond);
         }
     }
     pthread_mutex_unlock(&logmutex);

@@ -15,7 +15,7 @@
 #define ROC_SOCK_DATA 0
 #define ROC_SOCK_DRAIN 1
 #define ROC_SOCK_CLOSE 2
-#define ROC_SOCK_EVTEND 2
+#define ROC_SOCK_EVTEND 3
 
 #define ROC_NOMORE -1
 #define ROC_DELETED_EVENT_ID -1
@@ -63,7 +63,7 @@ typedef struct roc_ready_evt
 /* State of an event based program */
 typedef struct roc_evt_loop
 {
-    int size;  /* max number of file descriptors tracked */
+    int size;           /* max number of file descriptors tracked */
     volatile int maxfd; /* highest file descriptor currently registered */
 
     roc_io_evt *all_io_evts; /* Registered events */
