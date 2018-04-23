@@ -17,11 +17,12 @@ void ondata(roc_link *link)
     {
         return;
     }
-    char *data = malloc(len);
+    char *data = malloc(len + 1);
     if (!data)
     {
         return;
     }
+    *(data + len) = '\0';
     roc_ringbuf_read(link->ibuf, data, len);
     ROC_LOG_INFO("recv data from fd:%d, addr:%s:%d\ndata:%s\n",
                  link->fd, link->ip, link->port, data);
