@@ -5,13 +5,13 @@
 
 #define ROC_LOG_LEVEL_STDERR 0
 #define ROC_LOG_LEVEL_EMERG 1
-#define ROC_LOG_LEVEL_ALERT 3
-#define ROC_LOG_LEVEL_CRIT 7
-#define ROC_LOG_LEVEL_ERR 15
-#define ROC_LOG_LEVEL_WARN 31
-#define ROC_LOG_LEVEL_NOTICE 63
-#define ROC_LOG_LEVEL_INFO 127
-#define ROC_LOG_LEVEL_DEBUG 255
+#define ROC_LOG_LEVEL_ALERT 2
+#define ROC_LOG_LEVEL_CRIT 3
+#define ROC_LOG_LEVEL_ERR 4
+#define ROC_LOG_LEVEL_WARN 5
+#define ROC_LOG_LEVEL_NOTICE 6
+#define ROC_LOG_LEVEL_INFO 7
+#define ROC_LOG_LEVEL_DEBUG 8
 
 #define ROC_LOG_LEVEL_STDERR_PREFIX "[STDERR]"
 #define ROC_LOG_LEVEL_EMERG_PREFIX "[EMERG]"
@@ -45,42 +45,42 @@ int roc_log_flush();
 #define ROC_LOG_STDERR(format, ...)                                 \
     roc_log_write(ROC_LOG_LEVEL_STDERR, format, ##__VA_ARGS__);
 #define ROC_LOG_EMERG(format, ...)                                  \
-    if (roc_log_level & ROC_LOG_LEVEL_EMERG)                        \
+    if (roc_log_level >= ROC_LOG_LEVEL_EMERG)                       \
     {                                                               \
         roc_log_write(ROC_LOG_LEVEL_EMERG, format, ##__VA_ARGS__);  \
     }
 #define ROC_LOG_ALERT(format, ...)                                  \
-    if (roc_log_level & ROC_LOG_LEVEL_ALERT)                        \
+    if (roc_log_level >= ROC_LOG_LEVEL_ALERT)                       \
     {                                                               \
         roc_log_write(ROC_LOG_LEVEL_ALERT, format, ##__VA_ARGS__);  \
     }
 #define ROC_LOG_CRIT(format, ...)                                   \
-    if (roc_log_level & ROC_LOG_LEVEL_CRIT)                         \
+    if (roc_log_level >= ROC_LOG_LEVEL_CRIT)                        \
     {                                                               \
         roc_log_write(ROC_LOG_LEVEL_CRIT, format, ##__VA_ARGS__);   \
     }
 #define ROC_LOG_ERR(format, ...)                                    \
-    if (roc_log_level & ROC_LOG_LEVEL_ERR)                          \
+    if (roc_log_level >= ROC_LOG_LEVEL_ERR)                         \
     {                                                               \
         roc_log_write(ROC_LOG_LEVEL_ERR, format, ##__VA_ARGS__);    \
     }
 #define ROC_LOG_WARN(format, ...)                                   \
-    if (roc_log_level & ROC_LOG_LEVEL_WARN)                         \
+    if (roc_log_level >= ROC_LOG_LEVEL_WARN)                        \
     {                                                               \
         roc_log_write(ROC_LOG_LEVEL_WARN, format, ##__VA_ARGS__);   \
     }
 #define ROC_LOG_NOTICE(format, ...)                                 \
-    if (roc_log_level & ROC_LOG_LEVEL_NOTICE)                       \
+    if (roc_log_level >= ROC_LOG_LEVEL_NOTICE)                      \
     {                                                               \
         roc_log_write(ROC_LOG_LEVEL_NOTICE, format, ##__VA_ARGS__); \
     }
 #define ROC_LOG_INFO(format, ...)                                   \
-    if (roc_log_level & ROC_LOG_LEVEL_INFO)                         \
+    if (roc_log_level >= ROC_LOG_LEVEL_INFO)                        \
     {                                                               \
         roc_log_write(ROC_LOG_LEVEL_INFO, format, ##__VA_ARGS__);   \
     }
 #define ROC_LOG_DEBUG(format, ...)                                  \
-    if (roc_log_level & ROC_LOG_LEVEL_DEBUG)                        \
+    if (roc_log_level >= ROC_LOG_LEVEL_DEBUG)                       \
     {                                                               \
         roc_log_write(ROC_LOG_LEVEL_DEBUG, format, ##__VA_ARGS__);  \
     }

@@ -182,6 +182,16 @@ static inline roc_logcell *roc_logcell_get()
     return NULL;
 }
 
+/**
+ * 将当前时间转换为标准时间格式,并储存在std_time_str中
+ */
+static inline int roc_fmt_time(char *std_time_str)
+{
+    time_t t = time(NULL);
+    struct tm *ts = localtime(&t);
+    strftime(std_time_str, 22, "[%Y-%m-%d %H:%M:%S]", ts);
+}
+
 int roc_log_write(int level, const char *format, ...)
 {
     char buf[ROC_LOG_CELL_SIZE];
@@ -229,6 +239,12 @@ int roc_log_write(int level, const char *format, ...)
         strcpy(buf, ROC_LOG_LEVEL_STDERR_PREFIX);
         break;
     }
+
+    char time_str[22];
+    roc_fmt_time(time_str);
+    strcpy(buf + prefix_len, time_str);
+    prefix_len += strlen(time_str);
+
     va_list ap;
     va_start(ap, format);
     vsnprintf(buf + prefix_len, ROC_LOG_CELL_SIZE, format, ap);
