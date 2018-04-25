@@ -189,7 +189,7 @@ static int roc_smart_recv(roc_link *link)
             return 0;
         }
         rb->tail += ret;
-        if (ret < tail_capacity)
+        if (ret != tail_capacity)
         {
             return 0;
         }

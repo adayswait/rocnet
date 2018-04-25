@@ -7,8 +7,6 @@
 
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 
-#define MAX_RINGBUF_SIZE (5 * 1024 * 1024) /* 5MB */
-
 typedef unsigned char byte;
 
 typedef struct
@@ -67,10 +65,6 @@ static inline int roc_ringbuf_resize(roc_ringbuf *self, uint32_t newsize)
         return 0;
     }
     newsize = is_power_of_2(newsize) ? newsize : roundup_pow_of_two(newsize);
-    if (newsize >= MAX_RINGBUF_SIZE)
-    {
-        return -1;
-    }
     byte *bakptr = self->data;
     self->data = (byte *)realloc(self->data, newsize);
     if (!self->data)
@@ -78,11 +72,10 @@ static inline int roc_ringbuf_resize(roc_ringbuf *self, uint32_t newsize)
         self->data = bakptr;
         return -1;
     }
-    uint8_t readable = self->tail - self->head;
-    byte *bak_data = (byte *)malloc(readable);
-    roc_ringbuf_read(self, bak_data, readable);
-    memcpy(self->data, bak_data, readable);
-    free(bak_data);
+    uint32_t readable = self->tail - self->head;
+    byte *newmem = self->data + self->size;
+    roc_ringbuf_read(self, newmem, readable);
+    memcpy(self->data, newmem, readable);
     self->head = 0;
     self->tail = readable;
     self->size = newsize;
