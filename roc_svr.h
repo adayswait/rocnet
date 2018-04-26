@@ -38,6 +38,8 @@ int roc_init(const char *log_path, int log_level);
 int roc_run();
 int roc_svr_start(roc_svr *svr);
 int roc_svr_stop(roc_svr *svr);
-int roc_smart_send(roc_link *link, const void *buf, int len);
+int roc_smart_send(roc_link *link, void *buf, int len);
+void roc_svr_on(roc_svr *svr, int evt_type, roc_handle_func *handler);
+void roc_link_on(roc_link *link, int evt_type, roc_handle_func *handler);
 
 #endif /* ROC_SVR_H */

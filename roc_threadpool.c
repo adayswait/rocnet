@@ -21,6 +21,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <pthread.h>
 #include <semaphore.h>
 #include <limits.h>
@@ -226,6 +227,7 @@ static void roc_post_work(QUEUE *q)
     roc_mutex_unlock(&tpmutex);
 }
 
+#if 0
 static void roc_destory_threadpool()
 {
     unsigned int i;
@@ -256,6 +258,7 @@ static void roc_destory_threadpool()
     threads = NULL;
     thread_num = 0;
 }
+#endif
 
 static void roc_init_threadpoll(void)
 {

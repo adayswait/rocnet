@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
@@ -185,16 +186,16 @@ static inline roc_logcell *roc_logcell_get()
 /**
  * 将当前时间转换为标准时间格式,并储存在std_time_str中
  */
-static inline int roc_fmt_time(char *std_time_str)
+static inline void roc_fmt_time(char *std_time_str)
 {
     time_t t = time(NULL);
     struct tm *ts = localtime(&t);
     strftime(std_time_str, 22, "[%Y-%m-%d %H:%M:%S]", ts);
 }
 
-int roc_log_write(int level, const char *format, ...)
+void roc_log_write(int level, const char *format, ...)
 {
-    char buf[4096];
+    char buf[ROC_LOG_CELL_SIZE];
     int prefix_len = 0;
     switch (level)
     {
@@ -249,11 +250,11 @@ int roc_log_write(int level, const char *format, ...)
     va_start(ap, format);
     vsnprintf(buf + prefix_len, ROC_LOG_CELL_SIZE, format, ap);
     va_end(ap);
-    int len = strlen(buf);
+    uint32_t len = strlen(buf);
     pthread_mutex_lock(&logmutex);
     roc_ringbuf *rb = currcell->rb;
     roc_logcell *newcell;
-    int writen_n, ret;
+    uint32_t writen_n, ret;
     for (writen_n = 0; writen_n != len; writen_n += ret)
     {
         ret = roc_ringbuf_write_rigid(rb, buf + writen_n, len - writen_n);
@@ -282,7 +283,7 @@ int roc_log_write(int level, const char *format, ...)
     pthread_mutex_unlock(&logmutex);
 }
 
-int roc_log_flush()
+void roc_log_flush()
 {
     pthread_mutex_lock(&logmutex);
     if (QUEUE_EMPTY(&logq) && currcell->rb->tail - currcell->rb->head != 0)

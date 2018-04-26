@@ -7,13 +7,11 @@
 
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 
-typedef unsigned char byte;
-
 typedef struct
 {
     uint32_t head;
     uint32_t tail;
-    byte *data;
+    char *data;
     uint32_t size;
 } roc_ringbuf;
 
@@ -25,7 +23,7 @@ static inline roc_ringbuf *roc_ringbuf_new(uint32_t size)
     {
         return NULL;
     }
-    self->data = (byte *)malloc(size * sizeof(byte));
+    self->data = (char *)malloc(size * sizeof(char));
     if (!self->data)
     {
         free(self);
@@ -44,7 +42,7 @@ static inline void roc_ringbuf_del(roc_ringbuf *self)
 }
 
 static inline uint32_t roc_ringbuf_read(roc_ringbuf *self,
-                                        byte *data,
+                                        char *data,
                                         uint32_t len)
 {
     uint32_t head_readable;
@@ -63,15 +61,15 @@ static inline int roc_ringbuf_resize(roc_ringbuf *self, uint32_t newsize)
         return 0;
     }
     newsize = is_power_of_2(newsize) ? newsize : roundup_pow_of_two(newsize);
-    byte *bakptr = self->data;
-    self->data = (byte *)realloc(self->data, newsize);
+    char *bakptr = self->data;
+    self->data = (char *)realloc(self->data, newsize);
     if (!self->data)
     {
         self->data = bakptr;
         return -1;
     }
     uint32_t readable = self->tail - self->head;
-    byte *newmem = self->data + self->size;
+    char *newmem = self->data + self->size;
     roc_ringbuf_read(self, newmem, readable);
     memcpy(self->data, newmem, readable);
     self->head = 0;
@@ -92,7 +90,7 @@ static inline uint32_t roc_ringbuf_unused(roc_ringbuf *self)
  * 如果可用字节数小于len,自动扩容
  */
 static inline uint32_t roc_ringbuf_write(roc_ringbuf *self,
-                                         const byte *data,
+                                         char *data,
                                          uint32_t len)
 {
     uint32_t tail_capacity;
@@ -111,7 +109,7 @@ static inline uint32_t roc_ringbuf_write(roc_ringbuf *self,
  * 不会自动扩容,减少resize开销,提升性能,用于特殊场景
  */
 static inline uint32_t roc_ringbuf_write_rigid(roc_ringbuf *self,
-                                               const byte *data,
+                                               char *data,
                                                uint32_t len)
 {
     uint32_t tail_capacity;

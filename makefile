@@ -1,15 +1,19 @@
 OUTPUT_NAME = rocnet.x
 CC          = gcc
-CCFLAGS     = -pthread
+OFLAGS      = -g -pthread -Wall
+CFLAGS      = -g -MMD -MP -Wall -fPIC
 
-OBJECTS= $(patsubst %.c, %.o, $(shell ls $(1)*.c*))
-all:$(OBJECTS)
-	$(CC) -o $(OUTPUT_NAME) $(CCFLAGS)  $(OBJECTS)
+
+OBJS= $(patsubst %.c, %.o, $(shell ls $(1)*.c*))
+DEPS = $(addprefix  %.c, %.d, $(shell ls $(1)*.c*))  
+all:$(OBJS)
+	$(CC) -o $(OUTPUT_NAME) $(OFLAGS) $(OBJS)
 %.o: %.c*
-	$(CC) -c -fPIC $< -o $@
+	$(CC) -c $(CFLAGS) $< -o $@
+-include $(DEPS)  
 
 .PHONY:clean cleano
 clean:
-	-rm -f $(OUTPUT_NAME) $(OBJECTS)
+	-rm -f $(OUTPUT_NAME) $(OBJS)
 cleano:
-	-rm -f $(OBJECTS)
+	-rm -f $(OBJS)

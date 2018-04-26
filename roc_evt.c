@@ -1,11 +1,29 @@
 #include <stdint.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <errno.h>
 #include <sys/epoll.h>
 #include <sys/time.h>
 #include <sys/types.h>
 
 #include "roc_evt.h"
+
+static int roc_iom_create(roc_evt_loop *evt_loop)
+{
+    evt_loop->ret_evts = malloc(evt_loop->size * sizeof(struct epoll_event));
+    if (!evt_loop->ret_evts)
+    {
+        free(evt_loop->ret_evts);
+        return -1;
+    }
+    evt_loop->epfd = epoll_create(1024); /* 1024 is just a hint for the kernel */
+    if (evt_loop->epfd == -1)
+    {
+        free(evt_loop->ret_evts);
+        return -1;
+    }
+    return 0;
+}
 
 roc_evt_loop *roc_create_evt_loop(int size)
 {
@@ -44,23 +62,6 @@ err:
         free(evt_loop);
     }
     return NULL;
-}
-
-int roc_iom_create(roc_evt_loop *evt_loop)
-{
-    evt_loop->ret_evts = malloc(evt_loop->size * sizeof(struct epoll_event));
-    if (!evt_loop->ret_evts)
-    {
-        free(evt_loop->ret_evts);
-        return -1;
-    }
-    evt_loop->epfd = epoll_create(1024); /* 1024 is just a hint for the kernel */
-    if (evt_loop->epfd == -1)
-    {
-        free(evt_loop->ret_evts);
-        return -1;
-    }
-    return 0;
 }
 
 /* Resize the maximum size of the event loop.
@@ -114,6 +115,40 @@ void roc_del_evt_loop(roc_evt_loop *evt_loop)
 void roc_evt_loop_stop(roc_evt_loop *evt_loop)
 {
     evt_loop->stop = 1;
+}
+
+static int roc_iom_add_evt(roc_evt_loop *evt_loop, int fd, int mask)
+{
+
+    struct epoll_event ee = {0}; /* avoid valgrind warning */
+    /* If the fd was already monitored for some event, we need a MOD
+     * operation. Otherwise we need an ADD operation. */
+    int op = evt_loop->all_io_evts[fd].mask == ROC_EVENT_NONE
+                 ? EPOLL_CTL_ADD
+                 : EPOLL_CTL_MOD;
+
+    ee.events = 0;
+    mask |= evt_loop->all_io_evts[fd].mask; /* Merge old events */
+    if (mask & ROC_EVENT_INPUT)
+    {
+        ee.events |= EPOLLIN;
+    }
+
+    if (mask & ROC_EVENT_OUTPUT)
+    {
+        ee.events |= EPOLLOUT;
+    }
+    if (mask & ROC_EVENT_EPOLLET)
+    {
+        ee.events |= EPOLLET;
+    }
+
+    ee.data.fd = fd;
+    if (epoll_ctl(evt_loop->epfd, op, fd, &ee) == -1)
+    {
+        return -1;
+    }
+    return 0;
 }
 
 int roc_add_io_evt(roc_evt_loop *evt_loop, int fd, int mask,
@@ -215,40 +250,6 @@ void roc_del_io_evt(roc_evt_loop *evt_loop, int fd, int mask)
         }
         __sync_lock_test_and_set(&evt_loop->maxfd, i);
     }
-}
-
-int roc_iom_add_evt(roc_evt_loop *evt_loop, int fd, int mask)
-{
-
-    struct epoll_event ee = {0}; /* avoid valgrind warning */
-    /* If the fd was already monitored for some event, we need a MOD
-     * operation. Otherwise we need an ADD operation. */
-    int op = evt_loop->all_io_evts[fd].mask == ROC_EVENT_NONE
-                 ? EPOLL_CTL_ADD
-                 : EPOLL_CTL_MOD;
-
-    ee.events = 0;
-    mask |= evt_loop->all_io_evts[fd].mask; /* Merge old events */
-    if (mask & ROC_EVENT_INPUT)
-    {
-        ee.events |= EPOLLIN;
-    }
-
-    if (mask & ROC_EVENT_OUTPUT)
-    {
-        ee.events |= EPOLLOUT;
-    }
-    if (mask & ROC_EVENT_EPOLLET)
-    {
-        ee.events |= EPOLLET;
-    }
-
-    ee.data.fd = fd;
-    if (epoll_ctl(evt_loop->epfd, op, fd, &ee) == -1)
-    {
-        return -1;
-    }
-    return 0;
 }
 
 int roc_get_evts(roc_evt_loop *evt_loop, int fd)
@@ -435,6 +436,45 @@ int roc_process_time_evts(roc_evt_loop *evt_loop)
     return processed;
 }
 
+static int roc_iom_poll(roc_evt_loop *evt_loop, struct timeval *tvp)
+{
+    int retval, numevents = 0;
+
+    retval = epoll_wait(evt_loop->epfd, evt_loop->ret_evts, evt_loop->size,
+                        tvp ? (tvp->tv_sec * 1000 + tvp->tv_usec / 1000) : -1);
+    if (retval > 0)
+    {
+        int i;
+
+        numevents = retval;
+        for (i = 0; i < numevents; i++)
+        {
+            int mask = 0;
+            struct epoll_event *e = evt_loop->ret_evts + i;
+
+            if (e->events & EPOLLIN)
+            {
+                mask |= ROC_EVENT_INPUT;
+            }
+            if (e->events & EPOLLOUT)
+            {
+                mask |= ROC_EVENT_OUTPUT;
+            }
+            if (e->events & EPOLLERR)
+            {
+                mask |= ROC_EVENT_OUTPUT;
+            }
+            if (e->events & EPOLLHUP)
+            {
+                mask |= ROC_EVENT_OUTPUT;
+            }
+            evt_loop->ready_evts[i].fd = e->data.fd;
+            evt_loop->ready_evts[i].mask = mask;
+        }
+    }
+    return numevents;
+}
+
 /* Process every pending time event, then every pending file event
  * (that may be registered by time event callbacks just processed).
  * Without special flags the function sleeps until some file event
@@ -580,45 +620,6 @@ int roc_process_evts(roc_evt_loop *evt_loop, int flags)
     }
 
     return processed; /* return the number of processed file/time events */
-}
-
-int roc_iom_poll(roc_evt_loop *evt_loop, struct timeval *tvp)
-{
-    int retval, numevents = 0;
-
-    retval = epoll_wait(evt_loop->epfd, evt_loop->ret_evts, evt_loop->size,
-                        tvp ? (tvp->tv_sec * 1000 + tvp->tv_usec / 1000) : -1);
-    if (retval > 0)
-    {
-        int i;
-
-        numevents = retval;
-        for (i = 0; i < numevents; i++)
-        {
-            int mask = 0;
-            struct epoll_event *e = evt_loop->ret_evts + i;
-
-            if (e->events & EPOLLIN)
-            {
-                mask |= ROC_EVENT_INPUT;
-            }
-            if (e->events & EPOLLOUT)
-            {
-                mask |= ROC_EVENT_OUTPUT;
-            }
-            if (e->events & EPOLLERR)
-            {
-                mask |= ROC_EVENT_OUTPUT;
-            }
-            if (e->events & EPOLLHUP)
-            {
-                mask |= ROC_EVENT_OUTPUT;
-            }
-            evt_loop->ready_evts[i].fd = e->data.fd;
-            evt_loop->ready_evts[i].mask = mask;
-        }
-    }
-    return numevents;
 }
 
 void roc_evt_loop_start(roc_evt_loop *evt_loop)

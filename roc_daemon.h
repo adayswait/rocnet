@@ -4,6 +4,9 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+
 static int roc_daemon_start()
 {
     int fd;
@@ -20,6 +23,7 @@ static int roc_daemon_start()
         exit(0);
     }
     int pid = getpid();
+    printf("daemon started, pid:%d\n", pid);
 
     if (setsid() == -1)
     {

@@ -24,7 +24,7 @@
 #define ROC_LOG_LEVEL_DEBUG_PREFIX "[DEBUG]"
 
 #define ROC_LOG_CELL_NUM 1024
-#define ROC_LOG_CELL_SIZE 10240
+#define ROC_LOG_CELL_SIZE 1024
 
 #define ROC_LOGCELL_UNUSED 0
 #define ROC_LOGCELL_READ 1
@@ -39,8 +39,8 @@ typedef struct
 } roc_logcell;
 
 int roc_log_init(const char *path, int level);
-int roc_log_write(int level, const char *format, ...);
-int roc_log_flush();
+void roc_log_flush();
+void roc_log_write(int level, const char *format, ...);
 
 #define ROC_LOG_STDERR(format, ...)                                 \
     roc_log_write(ROC_LOG_LEVEL_STDERR, format, ##__VA_ARGS__);

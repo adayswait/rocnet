@@ -155,7 +155,7 @@ void roc_link_on(roc_link *link, int evt_type, roc_handle_func *handler)
 {
     if (evt_type < ROC_SOCK_EVTEND)
     {
-        __sync_lock_test_and_set(&link->handler[evt_type], handler);
+        (void)__sync_lock_test_and_set(&link->handler[evt_type], handler);
     }
 }
 
@@ -297,7 +297,7 @@ static void roc_auto_accept(roc_evt_loop *el, int fd, void *custom_data, int mas
         roc_dispatch_ioevt(link, ROC_EVENT_IOET);
     }
 }
-int roc_smart_send(roc_link *link, const void *buf, int len)
+int roc_smart_send(roc_link *link, void *buf, int len)
 {
     roc_ringbuf *rb = link->obuf;
     roc_evt_loop *el = link->evt_loop;
@@ -381,4 +381,5 @@ int roc_svr_start(roc_svr *svr)
 }
 int roc_svr_stop(roc_svr *svr)
 {
+    return 0;
 }
