@@ -1,6 +1,6 @@
 OUTPUT_NAME	= rocnet.x
-CC			= gcc
-CCFLAGS		= -pthread
+CC          = gcc
+CCFLAGS     = -pthread
 
 OBJECTS= $(patsubst %.c, %.o, $(shell ls $(1)*.c*))
 all:$(OBJECTS)
@@ -13,7 +13,3 @@ clean:
 	-rm -f $(OUTPUT_NAME) $(OBJECTS)
 cleano:
 	-rm -f $(OBJECTS)
-
-echo:
-	echo $(OBJECTS)
-	echo $(OUTPUT_NAME)

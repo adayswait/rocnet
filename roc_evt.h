@@ -95,4 +95,5 @@ int roc_del_time_evt(roc_evt_loop *evt_loop, int64_t id);
 int roc_evt_loop_resize(roc_evt_loop *evt_loop, int newsize);
 
 int roc_get_evts(roc_evt_loop *evt_loop, int fd);
+
 #endif /* ROC_EVT_H */

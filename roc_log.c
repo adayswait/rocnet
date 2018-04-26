@@ -194,7 +194,7 @@ static inline int roc_fmt_time(char *std_time_str)
 
 int roc_log_write(int level, const char *format, ...)
 {
-    char buf[ROC_LOG_CELL_SIZE];
+    char buf[4096];
     int prefix_len = 0;
     switch (level)
     {

@@ -381,8 +381,8 @@ int roc_process_time_evts(roc_evt_loop *evt_loop)
     max_id = evt_loop->time_evt_next_id - 1;
     while (te)
     {
-        long now_sec, now_ms;
-        long long id;
+        int64_t now_sec, now_ms;
+        int64_t id;
 
         /* Remove events scheduled for deletion. */
         if (te->id == ROC_DELETED_EVENT_ID)
@@ -475,7 +475,7 @@ int roc_process_evts(roc_evt_loop *evt_loop, int flags)
         }
         if (shortest)
         {
-            long now_sec, now_ms;
+            int64_t now_sec, now_ms;
 
             roc_get_time(&now_sec, &now_ms);
             tvp = &tv;

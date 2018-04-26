@@ -45,9 +45,9 @@ void onconnect(roc_link *link)
 
 int main()
 {
-    printf("welcome to use rocnet\n\n");
+    printf("welcome to use rocnet\n");
     int port = 3000;
-    if (roc_init("./a.log", ROC_LOG_LEVEL_DEBUG) == -1)
+    if (roc_init("./rocnet.r", ROC_LOG_LEVEL_DEBUG) == -1)
     {
         return -1;
     }

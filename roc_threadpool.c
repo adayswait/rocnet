@@ -199,7 +199,7 @@ static void roc_worker(void *arg)
         else
         {
             QUEUE_REMOVE(q);
-            QUEUE_INIT(q); /* Signal uv_cancel() that the work req is executing. */
+            QUEUE_INIT(q);
         }
 
         roc_mutex_unlock(&tpmutex);
