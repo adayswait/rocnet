@@ -1,4 +1,4 @@
-OUTPUT_NAME	= rocnet.x
+OUTPUT_NAME = rocnet.x
 CC          = gcc
 CCFLAGS     = -pthread
 
