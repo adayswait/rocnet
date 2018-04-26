@@ -11,11 +11,12 @@
 #include "roc_daemon.h"
 
 #define MAX_LINK_PER_SVR 65535
-#define ROC_THREAD_NUM 4
+#define ROC_THREAD_MAX_NUM 1024
 
 int flush_log_interval = 3000;
+int thread_num = 4;
 
-roc_work work_arr[ROC_THREAD_NUM];
+roc_work work_arr[ROC_THREAD_MAX_NUM];
 roc_evt_loop *default_loop;
 
 uint32_t curr_loop_offset = 0;
@@ -52,8 +53,14 @@ int roc_init(const char *log_path, int log_level)
     {
         return -1;
     }
+
+    char *val = getenv("ROC_THREADPOOL_SIZE");
+    if (val != NULL)
+    {
+        thread_num = atoi(val);
+    }
     int i;
-    for (i = 0; i < ROC_THREAD_NUM; i++)
+    for (i = 0; i < thread_num; i++)
     {
         roc_evt_loop *thread_loop = roc_create_evt_loop(MAX_LINK_PER_SVR);
         roc_work w;
@@ -250,7 +257,7 @@ static void roc_pretreat_data(roc_evt_loop *el, int fd,
 
 static int roc_dispatch_ioevt(roc_link *link, int mask)
 {
-    uint32_t next_loopid = curr_loop_offset % ROC_THREAD_NUM;
+    uint32_t next_loopid = curr_loop_offset % thread_num;
     roc_evt_loop *el = (roc_evt_loop *)(work_arr[next_loopid].data);
     if (roc_add_io_evt(el, link->fd, mask, roc_pretreat_data, link) == -1)
     {

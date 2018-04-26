@@ -260,7 +260,7 @@ static void roc_destory_threadpool()
 }
 #endif
 
-static void roc_init_threadpoll(void)
+static void roc_init_threadpool(void)
 {
     unsigned int i;
     const char *val;
@@ -337,7 +337,7 @@ static void roc_init_tponce(void)
     {
         abort();
     }
-    roc_init_threadpoll();
+    roc_init_threadpool();
 }
 
 /**
