@@ -23,12 +23,6 @@
 #define ROC_LOG_LEVEL_INFO_PREFIX "[INFO]"
 #define ROC_LOG_LEVEL_DEBUG_PREFIX "[DEBUG]"
 
-#define ROC_LOG_CELL_NUM 1024
-#define ROC_LOG_CELL_SIZE 1024
-
-#define ROC_LOGCELL_UNUSED 0
-#define ROC_LOGCELL_READ 1
-#define ROC_LOGCELL_WRITE 2
 int roc_log_level;
 typedef struct
 {

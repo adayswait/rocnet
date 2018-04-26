@@ -11,6 +11,14 @@
 #include "roc_ringbuf.h"
 #include "roc_threadpool.h"
 
+#define ROC_LOG_CELL_NUM 1024
+#define ROC_LOG_CELL_SIZE 4096
+#define ROC_PRELOG_SIZE 4096
+
+#define ROC_LOGCELL_UNUSED 0
+#define ROC_LOGCELL_READ 1
+#define ROC_LOGCELL_WRITE 2
+
 pthread_mutex_t logmutex;
 pthread_cond_t logcond;
 pthread_t thread_id;
@@ -116,7 +124,7 @@ int roc_log_init(const char *path, int level)
         cellmgr[i].rb = NULL;
     }
     cellmgr[0].status = ROC_LOGCELL_READ;
-    cellmgr[0].rb = roc_ringbuf_new(1024);
+    cellmgr[0].rb = roc_ringbuf_new(ROC_LOG_CELL_SIZE);
     if (!cellmgr[0].rb)
     {
         return -1;
@@ -150,17 +158,7 @@ int roc_log_init(const char *path, int level)
     signal(SIGABRT, roc_term_log);
     return 0;
 }
-static inline int roc_logcell_init(roc_logcell *cell)
-{
-    cell->rb = roc_ringbuf_new(1024);
-    if (!cell->rb)
-    {
-        return -1;
-    }
 
-    cell->status = ROC_LOGCELL_UNUSED;
-    return 0;
-}
 static inline roc_logcell *roc_logcell_get()
 {
     int i;
@@ -171,7 +169,7 @@ static inline roc_logcell *roc_logcell_get()
             cellmgr[i].status = ROC_LOGCELL_READ;
             if (!cellmgr[i].rb)
             {
-                cellmgr[i].rb = roc_ringbuf_new(1024);
+                cellmgr[i].rb = roc_ringbuf_new(ROC_LOG_CELL_SIZE);
             }
             if (!cellmgr[i].rb)
             {
@@ -195,7 +193,7 @@ static inline void roc_fmt_time(char *std_time_str)
 
 void roc_log_write(int level, const char *format, ...)
 {
-    char buf[ROC_LOG_CELL_SIZE];
+    char buf[ROC_PRELOG_SIZE];
     int prefix_len = 0;
     switch (level)
     {
@@ -248,7 +246,7 @@ void roc_log_write(int level, const char *format, ...)
 
     va_list ap;
     va_start(ap, format);
-    vsnprintf(buf + prefix_len, ROC_LOG_CELL_SIZE, format, ap);
+    vsnprintf(buf + prefix_len, ROC_PRELOG_SIZE - prefix_len, format, ap);
     va_end(ap);
     uint32_t len = strlen(buf);
     pthread_mutex_lock(&logmutex);
