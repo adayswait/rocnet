@@ -1,7 +1,7 @@
 OUTPUT_NAME = rocnet.x
 CC          = gcc
-OFLAGS      = -g -pthread -Wall
 CFLAGS      = -g -MMD -MP -Wall -fPIC
+OFLAGS      = -g -pthread -Wall -ldl
 
 
 OBJS= $(patsubst %.c, %.o, $(shell ls $(1)*.c*))
