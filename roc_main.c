@@ -17,7 +17,7 @@ void onconnect(roc_link *link)
     roc_link_on(link, ROC_SOCK_CLOSE, link->svr->plugin->close_handler);
 }
 
-int main()
+int main(int argc, char **argv)
 {
     printf("welcome to use rocnet\n");
     int port = 3000;
