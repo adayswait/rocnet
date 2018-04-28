@@ -2,92 +2,103 @@
 #include <stdlib.h>
 #include <string.h>
 #include <dlfcn.h>
+
+#include "roc_log.h"
 #include "roc_plugin.h"
 
-roc_plugin plugin;
-
-#define DLFUNC_NO_ERROR(h, v, name) \
-    do                              \
-    {                               \
-        v = dlsym(h, name);         \
-        dlerror();                  \
+#define PLUGIN_LOAD_NOERR(h, v, name) \
+    do                                \
+    {                                 \
+        v = dlsym(h, name);           \
+        dlerror();                    \
     } while (0)
 
-#define DLFUNC(h, v, name)                   \
-    do                                       \
-    {                                        \
-        v = dlsym(h, name);                  \
-        if ((error = dlerror()) != NULL)     \
-        {                                    \
-            printf("dlsym error:%s", error); \
-            dlclose(h);                      \
-            h = NULL;                        \
-            goto err;                        \
-        }                                    \
+#define PLUGIN_LOAD(h, v, name)                      \
+    do                                               \
+    {                                                \
+        v = dlsym(h, name);                          \
+        if ((error = dlerror()) != NULL)             \
+        {                                            \
+            ROC_LOG_STDERR("dlsym error:%s", error); \
+            dlclose(h);                              \
+            h = NULL;                                \
+            goto err;                                \
+        }                                            \
     } while (0)
 
-int register_data_plugin(const char *so_path)
+int register_plugin(roc_plugin *plugin_so, const char *so_path, int flag)
 {
     char *error;
-    int ret_code = 0;
+    int ret = -1;
+
+    plugin_so->so_handle = dlopen(so_path, RTLD_NOW);
+    if ((error = dlerror()) != NULL)
+    {
+        ROC_LOG_STDERR("dlopen error, %s\n", error);
+        goto err;
+    }
+
+    /* link handler */
+    PLUGIN_LOAD_NOERR(plugin_so->so_handle,
+                      plugin_so->close_handler, "close_handler");
+    PLUGIN_LOAD(plugin_so->so_handle,
+                plugin_so->connect_handler, "connect_handler");
+    PLUGIN_LOAD(plugin_so->so_handle,
+                plugin_so->recv_handler, "recv_handler");
+
+    /* svr handler */
+    PLUGIN_LOAD(plugin_so->so_handle,
+                plugin_so->init_handler, "init_handler");
+    PLUGIN_LOAD(plugin_so->so_handle,
+                plugin_so->fini_handler, "fini_handler");
+    ret = 0;
+
+err:
+    if (!flag)
+    {
+        ROC_LOG_STDERR("dlopen %s\n", so_path);
+    }
+    else
+    {
+        ROC_LOG_STDERR("RELOAD %s\t[%s]\n", so_path,
+                       (ret ? "FAIL" : "OK"));
+    }
+    return ret;
+}
+
+void unregister_plugin(roc_plugin *plugin_so)
+{
+    if (plugin_so->so_handle != NULL)
+    {
+        dlclose(plugin_so->so_handle);
+        plugin_so->so_handle = NULL;
+    }
+}
+
+int register_data_plugin(roc_plugin *plugin_so, const char *so_path)
+{
+    char *error;
+    int ret = 0;
     if (so_path == NULL)
     {
         return 0;
     }
 
-    plugin.data_so_handle = dlopen(so_path, RTLD_NOW | RTLD_GLOBAL);
+    plugin_so->data_so_handle = dlopen(so_path, RTLD_NOW | RTLD_GLOBAL);
     if ((error = dlerror()) != NULL)
     {
-        printf("dlopen error:%s", error);
-        ret_code = 0;
+        ROC_LOG_STDERR("dlopen error:%s\n", error);
+        ret = 0;
     }
-    printf("dlopen:%s", so_path);
-    return ret_code;
+    ROC_LOG_STDERR("dlopen:%s\n", so_path);
+    return ret;
 }
 
-int register_plugin(const char *so_path, int flag)
+void unregister_data_plugin(roc_plugin *plugin_so)
 {
-    char *error;
-    int ret_code = -1;
-
-    plugin.so_handle = dlopen(so_path, RTLD_NOW);
-    if ((error = dlerror()) != NULL)
+    if (plugin_so->data_so_handle != NULL)
     {
-        printf("dlopen error, %s", error);
-        goto err;
-    }
-
-    DLFUNC_NO_ERROR(plugin.so_handle, plugin.close_handler, "close_handler");
-    DLFUNC(plugin.so_handle, plugin.connect_handler, "connect_handler");
-    DLFUNC(plugin.so_handle, plugin.recv_handler, "recv_handler");
-    ret_code = 0;
-
-err:
-    if (!flag)
-    {
-        printf("dlopen %s", so_path);
-    }
-    else
-    {
-        printf("RELOAD %s\t[%s]", so_path, (ret_code ? "FAIL" : "OK"));
-    }
-    return ret_code;
-}
-
-void unregister_data_plugin()
-{
-    if (plugin.data_so_handle != NULL)
-    {
-        dlclose(plugin.data_so_handle);
-        plugin.data_so_handle = NULL;
-    }
-}
-
-void unregister_plugin()
-{
-    if (plugin.so_handle != NULL)
-    {
-        dlclose(plugin.so_handle);
-        plugin.so_handle = NULL;
+        dlclose(plugin_so->data_so_handle);
+        plugin_so->data_so_handle = NULL;
     }
 }

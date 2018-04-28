@@ -9,6 +9,7 @@
 #include "roc_threadpool.h"
 #include "roc_log.h"
 #include "roc_daemon.h"
+#include "roc_plugin.h"
 
 #define MAX_LINK_PER_SVR 65535
 #define ROC_THREAD_MAX_NUM 1024
@@ -42,6 +43,7 @@ int roc_init(const char *log_path, int log_level)
     {
         return -1;
     }
+    ROC_LOG_STDERR("log inited\n");
     default_loop = roc_create_evt_loop(MAX_LINK_PER_SVR);
 
     if (!default_loop)
@@ -68,6 +70,7 @@ int roc_init(const char *log_path, int log_level)
         roc_tpwork_submit(&work_arr[i], roc_work_func, thread_loop);
     }
     signal(SIGPIPE, SIG_IGN);
+    ROC_LOG_STDERR("roc inited\n");
     return 0;
 }
 int roc_run()
@@ -76,11 +79,23 @@ int roc_run()
     return 0;
 }
 
-roc_svr *roc_svr_new(int port)
+roc_svr *roc_svr_new(int port, char *plugin_path)
 {
     roc_svr *svr = (roc_svr *)malloc(sizeof(roc_svr));
     if (!svr)
     {
+        return NULL;
+    }
+    svr->plugin = (roc_plugin *)malloc(sizeof(roc_plugin));
+    if (!svr->plugin)
+    {
+        free(svr);
+        return NULL;
+    }
+    if (register_plugin(svr->plugin, plugin_path, 0) == -1)
+    {
+        free(svr->plugin);
+        free(svr);
         return NULL;
     }
     svr->port = port;
@@ -94,10 +109,12 @@ roc_svr *roc_svr_new(int port)
         free(svr);
     }
     svr->evt_loop = default_loop;
+    svr->send = roc_smart_send;
+    svr->log = roc_log_write;
     return svr;
 }
 
-void roc_svr_on(roc_svr *svr, int evt_type, roc_handle_func *handler)
+void roc_svr_on(roc_svr *svr, int evt_type, roc_handle_func_link *handler)
 {
     if (evt_type < ROC_SOCK_EVTEND)
     {
@@ -105,7 +122,7 @@ void roc_svr_on(roc_svr *svr, int evt_type, roc_handle_func *handler)
     }
 }
 
-static roc_link *roc_link_new(int fd, char *ip, int port)
+static roc_link *roc_link_new(int fd, char *ip, int port, roc_svr *svr)
 {
     roc_link *link = (roc_link *)malloc(sizeof(roc_link));
     if (!link)
@@ -141,7 +158,7 @@ static roc_link *roc_link_new(int fd, char *ip, int port)
     }
     link->port = port;
     link->fd = fd;
-
+    link->svr = svr;
     return link;
 }
 
@@ -158,7 +175,7 @@ static inline void roc_link_del(roc_link *link)
     free(link);
 }
 
-void roc_link_on(roc_link *link, int evt_type, roc_handle_func *handler)
+void roc_link_on(roc_link *link, int evt_type, roc_handle_func_link *handler)
 {
     if (evt_type < ROC_SOCK_EVTEND)
     {
@@ -293,7 +310,7 @@ static void roc_auto_accept(roc_evt_loop *el, int fd, void *custom_data, int mas
 
     if (svr->handler[ROC_SOCK_CONNECT])
     {
-        roc_link *link = roc_link_new(cfd, ip_addr, cport);
+        roc_link *link = roc_link_new(cfd, ip_addr, cport, svr);
         if (!link)
         {
             close(cfd);
@@ -383,10 +400,12 @@ int roc_svr_start(roc_svr *svr)
         free(svr);
         return -1;
     }
+    svr->plugin->init_handler(svr);
 
     return 0;
 }
 int roc_svr_stop(roc_svr *svr)
 {
+    svr->plugin->fini_handler(svr);
     return 0;
 }
