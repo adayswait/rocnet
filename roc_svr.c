@@ -79,24 +79,25 @@ int roc_run()
     return 0;
 }
 
-roc_svr *roc_svr_new(int port, char *plugin_path)
+roc_svr *roc_svr_new(int port)
 {
     roc_svr *svr = (roc_svr *)malloc(sizeof(roc_svr));
     if (!svr)
     {
         return NULL;
     }
-    svr->plugin = (roc_plugin *)malloc(sizeof(roc_plugin));
-    if (!svr->plugin)
+    int i;
+    for (i = 0; i < ROC_PLUGIN_MAX; i++)
     {
-        free(svr);
-        return NULL;
-    }
-    if (register_plugin(svr->plugin, plugin_path, 0) == -1)
-    {
-        free(svr->plugin);
-        free(svr);
-        return NULL;
+        svr->plugin[i].level = -1;
+        if (i != (ROC_PLUGIN_MAX - 1))
+        {
+            svr->plugin[i].next = &svr->plugin[i + 1];
+        }
+        else
+        {
+            svr->plugin[i].next = NULL;
+        }
     }
     svr->port = port;
     svr->domain = AF_INET;
@@ -120,6 +121,25 @@ void roc_svr_on(roc_svr *svr, int evt_type, roc_handle_func_link *handler)
     {
         svr->handler[evt_type] = handler;
     }
+}
+int roc_svr_use(roc_svr *svr, char *plugin_path)
+{
+    int i;
+    for (i = 0; i < ROC_PLUGIN_MAX; i++)
+    {
+        if (svr->plugin[i].level != -1)
+        {
+            continue;
+        }
+        svr->plugin[i].level = i;
+        if (register_plugin(&svr->plugin[i], plugin_path, 0) == -1)
+        {
+            free(svr);
+            return -1;
+        }
+        return 0;
+    }
+    return -1;
 }
 
 static roc_link *roc_link_new(int fd, char *ip, int port, roc_svr *svr)

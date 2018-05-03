@@ -12,9 +12,9 @@
 
 void onconnect(roc_link *link)
 {
-    link->svr->plugin->connect_handler(link);
-    roc_link_on(link, ROC_SOCK_DATA, link->svr->plugin->recv_handler);
-    roc_link_on(link, ROC_SOCK_CLOSE, link->svr->plugin->close_handler);
+    link->svr->plugin[0].connect_handler(link);
+    roc_link_on(link, ROC_SOCK_DATA, link->svr->plugin[0].recv_handler);
+    roc_link_on(link, ROC_SOCK_CLOSE, link->svr->plugin[0].close_handler);
 }
 
 int main(int argc, char **argv)
@@ -25,12 +25,13 @@ int main(int argc, char **argv)
     {
         return -1;
     }
-    roc_svr *svr = roc_svr_new(port, "./plugin.so");
+    roc_svr *svr = roc_svr_new(port);
     if (!svr)
     {
         return -1;
     }
     ROC_LOG_INFO("server listening on port:%d\n", port);
+    roc_svr_use(svr, "./plugin.so");
     roc_svr_on(svr, ROC_SOCK_CONNECT, onconnect);
     if (roc_svr_start(svr) == -1)
     {
