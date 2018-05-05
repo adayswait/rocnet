@@ -62,7 +62,7 @@ static inline int roc_ringbuf_resize(roc_ringbuf *self, uint32_t newsize)
     }
     newsize = is_power_of_2(newsize) ? newsize : roundup_pow_of_two(newsize);
     char *bakptr = self->data;
-    self->data = (char *)realloc(self->data, newsize);
+    self->data = (char *)realloc(self->data, newsize * sizeof(char));
     if (!self->data)
     {
         self->data = bakptr;

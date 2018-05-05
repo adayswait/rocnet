@@ -96,7 +96,7 @@ static void roc_term_log(int signal)
 int roc_log_init(const char *path, int level)
 {
 
-    if (path && strlen(path) != 0)
+    if (path != NULL && strlen(path) != 0)
     {
         logfs = fopen(path, "a+");
         if (!logfs)
