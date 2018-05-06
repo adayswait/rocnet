@@ -13,8 +13,8 @@ typedef struct roc_svr_s roc_svr;
 typedef struct roc_link_s roc_link;
 typedef struct roc_plugin_s roc_plugin;
 
-typedef void roc_handle_func_link(roc_link *link);
-typedef void roc_handle_func_svr(roc_svr *svr);
+typedef void roc_handle_func_link(roc_link *link, void *custom_data);
+typedef void roc_handle_func_svr(roc_svr *svr, void *custom_data);
 typedef int roc_send_func(roc_link *link, void *buf, int len);
 typedef void roc_log_func(int level, const char *format, ...);
 
@@ -28,8 +28,7 @@ struct roc_plugin_s
 
     roc_handle_func_svr *init_handler;
     roc_handle_func_svr *fini_handler;
-    int level;          /* level == -1表示该插件未初始化 */
-    roc_plugin *next; /* 下一个插件地址 */
+    int level; /* level == -1表示该插件未初始化 */
 };
 
 struct roc_svr_s
@@ -41,6 +40,7 @@ struct roc_svr_s
     int backlog;
     int maxlink;
     int nonblock;
+    int next_plugin_level;
     roc_evt_loop *evt_loop;
     roc_handle_func_link *handler[ROC_SOCK_EVTEND];
     roc_plugin plugin[ROC_PLUGIN_MAX];
@@ -53,6 +53,7 @@ struct roc_link_s
     int fd;
     int port;
     char *ip;
+    int next_plugin_level;
     roc_ringbuf *ibuf;
     roc_ringbuf *obuf;
     roc_evt_loop *evt_loop;

@@ -38,7 +38,7 @@ static int roc_flush_log_func(roc_evt_loop *evt_loop,
 
 int roc_init(const char *log_path, int log_level)
 {
-    roc_daemon_start();
+    //roc_daemon_start();
     if (roc_log_init(log_path, log_level) == -1)
     {
         return -1;
@@ -90,14 +90,6 @@ roc_svr *roc_svr_new(int port)
     for (i = 0; i < ROC_PLUGIN_MAX; i++)
     {
         svr->plugin[i].level = -1;
-        if (i != (ROC_PLUGIN_MAX - 1))
-        {
-            svr->plugin[i].next = &svr->plugin[i + 1];
-        }
-        else
-        {
-            svr->plugin[i].next = NULL;
-        }
     }
     svr->port = port;
     svr->domain = AF_INET;
@@ -112,6 +104,7 @@ roc_svr *roc_svr_new(int port)
     svr->evt_loop = default_loop;
     svr->send = roc_smart_send;
     svr->log = roc_log_write;
+    svr->next_plugin_level = 0;
     return svr;
 }
 
@@ -179,6 +172,7 @@ static roc_link *roc_link_new(int fd, char *ip, int port, roc_svr *svr)
     link->port = port;
     link->fd = fd;
     link->svr = svr;
+    link->next_plugin_level = 0;
     return link;
 }
 
@@ -186,7 +180,7 @@ static inline void roc_link_del(roc_link *link)
 {
     if (link->handler[ROC_SOCK_CLOSE])
     {
-        link->handler[ROC_SOCK_CLOSE](link);
+        link->handler[ROC_SOCK_CLOSE](link, NULL);
     }
     close(link->fd);
     roc_ringbuf_del(link->ibuf);
@@ -276,7 +270,7 @@ static void roc_pretreat_data(roc_evt_loop *el, int fd,
         }
         if (link->handler[ROC_SOCK_DATA])
         {
-            link->handler[ROC_SOCK_DATA](link);
+            link->handler[ROC_SOCK_DATA](link, NULL);
         }
     }
     if (mask & ROC_EVENT_OUTPUT)
@@ -336,8 +330,7 @@ static void roc_auto_accept(roc_evt_loop *el, int fd, void *custom_data, int mas
             close(cfd);
             return;
         }
-
-        svr->handler[ROC_SOCK_CONNECT](link);
+        svr->handler[ROC_SOCK_CONNECT](link, NULL);
         roc_dispatch_ioevt(link, ROC_EVENT_IOET);
     }
 }
@@ -420,12 +413,17 @@ int roc_svr_start(roc_svr *svr)
         free(svr);
         return -1;
     }
-    svr->plugin->init_handler(svr);
-
+    if (svr->plugin[0].level != -1)
+    {
+        svr->plugin[0].init_handler(svr, NULL);
+    }
     return 0;
 }
 int roc_svr_stop(roc_svr *svr)
 {
-    svr->plugin->fini_handler(svr);
+    if (svr->plugin[0].level != -1)
+    {
+        svr->plugin[0].fini_handler(svr, NULL);
+    }
     return 0;
 }
