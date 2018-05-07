@@ -43,6 +43,7 @@ struct roc_svr_s
     int next_plugin_level;
     roc_evt_loop *evt_loop;
     roc_handle_func_link *handler[ROC_SOCK_EVTEND];
+    roc_handle_func_link *close_link;
     roc_plugin plugin[ROC_PLUGIN_MAX];
     roc_send_func *send;
     roc_log_func *log;

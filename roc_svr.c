@@ -73,10 +73,25 @@ int roc_init(const char *log_path, int log_level)
     ROC_LOG_STDERR("roc inited\n");
     return 0;
 }
+
 int roc_run()
 {
     roc_evt_loop_start(default_loop);
     return 0;
+}
+
+static inline void roc_link_del(roc_link *link, void *custom_data)
+{
+    roc_del_io_evt(link->evt_loop, link->fd, ROC_EVENT_IOET);
+    if (link->handler[ROC_SOCK_CLOSE])
+    {
+        link->handler[ROC_SOCK_CLOSE](link, NULL);
+    }
+    close(link->fd);
+    roc_ringbuf_del(link->ibuf);
+    roc_ringbuf_del(link->obuf);
+    free(link->ip);
+    free(link);
 }
 
 roc_svr *roc_svr_new(int port)
@@ -86,10 +101,10 @@ roc_svr *roc_svr_new(int port)
     {
         return NULL;
     }
-    int i;
-    for (i = 0; i < ROC_PLUGIN_MAX; i++)
+    if (!default_loop)
     {
-        svr->plugin[i].level = -1;
+        free(svr);
+        return NULL;
     }
     svr->port = port;
     svr->domain = AF_INET;
@@ -97,14 +112,21 @@ roc_svr *roc_svr_new(int port)
     svr->backlog = 65535;
     svr->maxlink = 65535;
     svr->nonblock = 1;
-    if (!default_loop)
-    {
-        free(svr);
-    }
+    svr->next_plugin_level = 0;
     svr->evt_loop = default_loop;
+    int i;
+    for (i = 0; i < ROC_PLUGIN_MAX; i++)
+    {
+        svr->plugin[i].level = -1;
+    }
+    for (i = 0; i < ROC_SOCK_EVTEND; i++)
+    {
+        svr->handler[i] = NULL;
+    }
+    svr->close_link = roc_link_del;
     svr->send = roc_smart_send;
     svr->log = roc_log_write;
-    svr->next_plugin_level = 0;
+
     return svr;
 }
 
@@ -176,19 +198,6 @@ static roc_link *roc_link_new(int fd, char *ip, int port, roc_svr *svr)
     return link;
 }
 
-static inline void roc_link_del(roc_link *link)
-{
-    if (link->handler[ROC_SOCK_CLOSE])
-    {
-        link->handler[ROC_SOCK_CLOSE](link, NULL);
-    }
-    close(link->fd);
-    roc_ringbuf_del(link->ibuf);
-    roc_ringbuf_del(link->obuf);
-    free(link->ip);
-    free(link);
-}
-
 void roc_link_on(roc_link *link, int evt_type, roc_handle_func_link *handler)
 {
     if (evt_type < ROC_SOCK_EVTEND)
@@ -200,7 +209,6 @@ void roc_link_on(roc_link *link, int evt_type, roc_handle_func_link *handler)
 static int roc_smart_recv(roc_link *link)
 {
     roc_ringbuf *rb = link->ibuf;
-    roc_evt_loop *el = link->evt_loop;
 
     uint32_t len = roc_ringbuf_unused(rb);
     if (len == 0)
@@ -218,8 +226,7 @@ static int roc_smart_recv(roc_link *link)
                        tail_capacity, 1);
         if (ret == -1) /* link closed by client or error occur */
         {
-            roc_del_io_evt(el, link->fd, ROC_EVENT_IOET);
-            roc_link_del(link);
+            roc_link_del(link, NULL);
             return -1;
         }
         if (ret == 0)
@@ -239,8 +246,7 @@ static int roc_smart_recv(roc_link *link)
         ret = roc_recv(link->fd, rb->data, head_capacity, 1);
         if (ret == -1) /* link closed by client or error occur */
         {
-            roc_del_io_evt(el, link->fd, ROC_EVENT_IOET);
-            roc_link_del(link);
+            roc_link_del(link, NULL);
             return -1;
         }
         if (ret == 0)
@@ -292,7 +298,7 @@ static int roc_dispatch_ioevt(roc_link *link, int mask)
     roc_evt_loop *el = (roc_evt_loop *)(work_arr[next_loopid].data);
     if (roc_add_io_evt(el, link->fd, mask, roc_pretreat_data, link) == -1)
     {
-        roc_link_del(link);
+        roc_link_del(link, NULL);
         return -1;
     }
     link->evt_loop = el;
@@ -337,7 +343,6 @@ static void roc_auto_accept(roc_evt_loop *el, int fd, void *custom_data, int mas
 int roc_smart_send(roc_link *link, void *buf, int len)
 {
     roc_ringbuf *rb = link->obuf;
-    roc_evt_loop *el = link->evt_loop;
     if (buf && len)
     {
         roc_ringbuf_write(rb, buf, len);
@@ -354,8 +359,7 @@ int roc_smart_send(roc_link *link, void *buf, int len)
                        head_readable, 1);
         if (ret == -1)
         {
-            roc_del_io_evt(el, link->fd, ROC_EVENT_IOET);
-            roc_link_del(link);
+            roc_link_del(link, NULL);
             return -1;
         }
         if (ret == 0)
@@ -376,8 +380,7 @@ int roc_smart_send(roc_link *link, void *buf, int len)
         ret = roc_send(link->fd, rb->data, tail_readable, 1);
         if (ret == -1)
         {
-            roc_del_io_evt(el, link->fd, ROC_EVENT_IOET);
-            roc_link_del(link);
+            roc_link_del(link, NULL);
             return -1;
         }
         if (ret == 0)
