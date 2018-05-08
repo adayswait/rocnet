@@ -4,7 +4,7 @@ CFLAGS      = -g -MMD -MP -Wall -fPIC
 OFLAGS      = -g -pthread -Wall -ldl
 
 
-OBJS= $(patsubst %.c, %.o, $(shell ls $(1)*.c*))
+OBJS = $(patsubst %.c, %.o, $(shell ls $(1)*.c*))
 DEPS = $(addprefix  %.c, %.d, $(shell ls $(1)*.c*))  
 all:$(OBJS)
 	$(CC) -o $(OUTPUT_NAME) $(OFLAGS) $(OBJS)
