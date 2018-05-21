@@ -14,6 +14,6 @@ all:$(OBJS)
 
 .PHONY:clean cleano
 clean:
-	-rm -f $(OUTPUT_NAME) $(OBJS)
+	-rm -f $(OUTPUT_NAME) $(OBJS) ./*.d
 cleano:
 	-rm -f $(OBJS)
