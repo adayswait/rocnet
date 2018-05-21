@@ -171,12 +171,20 @@ int roc_connect(char *addr, int port, char *source_addr, int flags)
         /* Try to create the socket and to connect it.
          * If we fail in the socket() call, or on connect(), we retry with
          * the next entry in servinfo. */
-        if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1)
+        sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+        if (sockfd == -1)
+        {
             continue;
+        }
+
         if (roc_set_sock_reuseaddr(sockfd) == -1)
+        {
             goto error;
+        }
         if (flags & (1 << 0) && roc_set_fd_nonblock(sockfd, 1) != 0)
+        {
             goto error;
+        }
         if (source_addr)
         {
             int bound = 0;
@@ -204,7 +212,9 @@ int roc_connect(char *addr, int port, char *source_addr, int flags)
             /* If the socket is non-blocking, it is ok for connect() to
              * return an EINPROGRESS error here. */
             if (errno == EINPROGRESS && flags & (1 << 0))
+            {
                 goto end;
+            }
             close(sockfd);
             sockfd = -1;
             continue;
@@ -322,7 +332,8 @@ int roc_tcp_svr(int port, char *bindaddr, int domain, int backlog)
     }
     for (p = servinfo; p != NULL; p = p->ai_next)
     {
-        if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1)
+        sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+        if (sockfd == -1)
         {
             continue;
         }

@@ -16,7 +16,9 @@ static int roc_iom_create(roc_evt_loop *evt_loop)
         free(evt_loop->ret_evts);
         return -1;
     }
-    evt_loop->epfd = epoll_create(1024); /* 1024 is just a hint for the kernel */
+
+    /* 1024 is just a hint for the kernel */
+    evt_loop->epfd = epoll_create(1024);
     if (evt_loop->epfd == -1)
     {
         free(evt_loop->ret_evts);
@@ -341,7 +343,8 @@ roc_time_evt *roc_search_nearest_time_evt(roc_evt_loop *evt_loop)
     {
         if ((!nearest) ||
             (te->when_sec < nearest->when_sec) ||
-            (te->when_sec == nearest->when_sec && te->when_ms < nearest->when_ms))
+            (te->when_sec == nearest->when_sec &&
+             te->when_ms < nearest->when_ms))
         {
             nearest = te;
         }
@@ -559,9 +562,10 @@ int roc_process_evts(roc_evt_loop *evt_loop, int flags)
 
         for (i = 0; i < numevents; i++)
         {
-            roc_io_evt *fe = &evt_loop->all_io_evts[evt_loop->ready_evts[i].fd];
-            int mask = evt_loop->ready_evts[i].mask;
             int fd = evt_loop->ready_evts[i].fd;
+            roc_io_evt *ioe = &evt_loop->all_io_evts[fd];
+            int mask = evt_loop->ready_evts[i].mask;
+
             int fired = 0; /* Number of events fired for current fd. */
 
             /* Normally we execute the readable event first, and the writable
@@ -569,43 +573,43 @@ int roc_process_evts(roc_evt_loop *evt_loop, int flags)
              * to serve the reply of a query immediately after processing the
              * query.
              *
-             * However if ROC_EVENT_BARRIER is set in the mask, our application is
-             * asking us to do the reverse: never fire the writable event
+             * However if ROC_EVENT_BARRIER is set in the mask, our application
+             * is asking us to do the reverse: never fire the writable event
              * after the readable. In such a case, we invert the calls.
              * This is useful when, for instance, we want to do things
              * in the beforeSleep() hook, like fsynching a file to disk,
              * before replying to a client. */
-            int invert = fe->mask & ROC_EVENT_BARRIER;
+            int invert = ioe->mask & ROC_EVENT_BARRIER;
 
-            /* Note the "fe->mask & mask & ..." code: maybe an already
+            /* Note the "ioe->mask & mask & ..." code: maybe an already
              * processed event removed an element that fired and we still
              * didn't processed, so we check if the event is still valid.
              *
              * Fire the readable event if the call sequence is not
              * inverted. */
-            if (!invert && fe->mask & mask & ROC_EVENT_INPUT)
+            if (!invert && ioe->mask & mask & ROC_EVENT_INPUT)
             {
-                fe->iporc(evt_loop, fd, fe->custom_data, mask);
+                ioe->iporc(evt_loop, fd, ioe->custom_data, mask);
                 fired++;
             }
 
             /* Fire the writable event. */
-            if (fe->mask & mask & ROC_EVENT_OUTPUT)
+            if (ioe->mask & mask & ROC_EVENT_OUTPUT)
             {
-                if (!fired || fe->oproc != fe->iporc)
+                if (!fired || ioe->oproc != ioe->iporc)
                 {
-                    fe->oproc(evt_loop, fd, fe->custom_data, mask);
+                    ioe->oproc(evt_loop, fd, ioe->custom_data, mask);
                     fired++;
                 }
             }
 
             /* If we have to invert the call, fire the readable event now
              * after the writable one. */
-            if (invert && fe->mask & mask & ROC_EVENT_INPUT)
+            if (invert && ioe->mask & mask & ROC_EVENT_INPUT)
             {
-                if (!fired || fe->oproc != fe->iporc)
+                if (!fired || ioe->oproc != ioe->iporc)
                 {
-                    fe->iporc(evt_loop, fd, fe->custom_data, mask);
+                    ioe->iporc(evt_loop, fd, ioe->custom_data, mask);
                     fired++;
                 }
             }

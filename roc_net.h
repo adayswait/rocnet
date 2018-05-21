@@ -33,9 +33,9 @@ static inline int roc_set_tcp_nodelay(int sockfd, int flag)
     return setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag));
 }
 
-static inline int roc_set_sock_sndbuf(int sockfd, int bufsize)
+static inline int roc_set_sock_sndbuf(int sockfd, int size)
 {
-    return setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &bufsize, sizeof(bufsize));
+    return setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &size, sizeof(size));
 }
 
 /* Set the socket send timeout (SO_SNDTIMEO socket option) to the specified

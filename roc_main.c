@@ -12,7 +12,8 @@
 
 void onconnect(roc_link *link, void *custom_data)
 {
-    link->svr->plugin[link->next_plugin_level].connect_handler(link, custom_data);
+    link->svr->plugin[link->next_plugin_level]
+        .connect_handler(link, custom_data);
     roc_link_on(link, ROC_SOCK_DATA,
                 link->svr->plugin[link->next_plugin_level].recv_handler);
     roc_link_on(link, ROC_SOCK_CLOSE,

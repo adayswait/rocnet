@@ -306,7 +306,8 @@ static int roc_dispatch_ioevt(roc_link *link, int mask)
     return 0;
 }
 
-static void roc_auto_accept(roc_evt_loop *el, int fd, void *custom_data, int mask)
+static void roc_auto_accept(roc_evt_loop *el, int fd,
+                            void *custom_data, int mask)
 {
     int cport;
     char ip_addr[16] = {0};
@@ -349,14 +350,14 @@ int roc_smart_send(roc_link *link, void *buf, int len)
     }
 
     uint32_t rblen = rb->tail - rb->head;
-    uint32_t head_readable = min(rblen, rb->size - (rb->head & (rb->size - 1)));
+    uint32_t head_n = min(rblen, rb->size - (rb->head & (rb->size - 1)));
 
     int ret;
-    if (head_readable)
+    if (head_n)
     {
         ret = roc_send(link->fd,
                        rb->data + (rb->head & (rb->size - 1)),
-                       head_readable, 1);
+                       head_n, 1);
         if (ret == -1)
         {
             roc_link_del(link, NULL);
@@ -368,16 +369,16 @@ int roc_smart_send(roc_link *link, void *buf, int len)
         }
         rb->head += ret;
 
-        if (ret != head_readable)
+        if (ret != head_n)
         {
             return roc_smart_send(link, NULL, 0);
         }
     }
 
-    uint32_t tail_readable = rblen - head_readable;
-    if (tail_readable)
+    uint32_t tail_n = rblen - head_n;
+    if (tail_n)
     {
-        ret = roc_send(link->fd, rb->data, tail_readable, 1);
+        ret = roc_send(link->fd, rb->data, tail_n, 1);
         if (ret == -1)
         {
             roc_link_del(link, NULL);
@@ -388,7 +389,7 @@ int roc_smart_send(roc_link *link, void *buf, int len)
             return 0;
         }
         rb->head += ret;
-        if (ret != tail_readable)
+        if (ret != tail_n)
         {
             return roc_smart_send(link, NULL, 0);
         }
