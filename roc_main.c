@@ -1,12 +1,4 @@
 #include <stdio.h>
-#include <errno.h>
-#include <signal.h>
-#include <string.h>
-#include <stdint.h>
-#include "roc_evt.h"
-#include "roc_net.h"
-#include "roc_ringbuf.h"
-#include "roc_threadpool.h"
 #include "roc_svr.h"
 #include "roc_log.h"
 
@@ -41,6 +33,5 @@ int main(int argc, char **argv)
     {
         return -1;
     }
-
     return roc_run();
 }

@@ -15,7 +15,7 @@
 #define ROC_THREAD_MAX_NUM 1024
 
 int flush_log_interval = 3000;
-int thread_num = 4;
+int thread_num = 4; /* default 4 threads */
 
 roc_work work_arr[ROC_THREAD_MAX_NUM];
 roc_evt_loop *default_loop;
@@ -38,7 +38,7 @@ static int roc_flush_log_func(roc_evt_loop *evt_loop,
 
 int roc_init(const char *log_path, int log_level)
 {
-    //roc_daemon_start();
+    //roc_daemon_start(); /* 测试时暂时屏蔽,正式环境建议开启 */
     if (roc_log_init(log_path, log_level) == -1)
     {
         return -1;
@@ -425,9 +425,12 @@ int roc_svr_start(roc_svr *svr)
 }
 int roc_svr_stop(roc_svr *svr)
 {
+    roc_del_io_evt(svr->evt_loop, svr->fd, ROC_EVENT_INPUT);
     if (svr->plugin[0].level != -1)
     {
         svr->plugin[0].fini_handler(svr, NULL);
     }
+    close(svr->fd);
+    free(svr);
     return 0;
 }

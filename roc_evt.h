@@ -9,7 +9,10 @@
 #define ROC_EVENT_OUTPUT 2
 #define ROC_EVENT_BARRIER 4
 #define ROC_EVENT_EPOLLET 8
-#define ROC_EVENT_IOET (ROC_EVENT_INPUT | ROC_EVENT_OUTPUT | ROC_EVENT_EPOLLET)
+#define ROC_EVENT_IOET ( \
+    ROC_EVENT_INPUT |    \
+    ROC_EVENT_OUTPUT |   \
+    ROC_EVENT_EPOLLET)
 
 #define ROC_SOCK_CONNECT 0
 #define ROC_SOCK_DATA 0
@@ -22,7 +25,9 @@
 
 #define ROC_FILE_EVENTS 1
 #define ROC_TIME_EVENTS 2
-#define ROC_ALL_EVENTS (ROC_FILE_EVENTS | ROC_TIME_EVENTS)
+#define ROC_ALL_EVENTS ( \
+    ROC_FILE_EVENTS |    \
+    ROC_TIME_EVENTS)
 #define ROC_DONT_WAIT 4
 #define ROC_CALL_AFTER_SLEEP 8
 
@@ -82,18 +87,13 @@ roc_evt_loop *roc_create_evt_loop(int size);
 void roc_del_evt_loop(roc_evt_loop *evt_loop);
 void roc_evt_loop_start(roc_evt_loop *evt_loop);
 void roc_evt_loop_stop(roc_evt_loop *evt_loop);
-
 int roc_add_io_evt(roc_evt_loop *evt_loop, int fd, int mask,
                    roc_io_proc proc, void *custom_data);
 void roc_del_io_evt(roc_evt_loop *evt_loop, int fd, int mask);
-
 int64_t roc_add_time_evt(roc_evt_loop *evt_loop, int64_t ms,
                          roc_time_proc *proc, void *custom_data);
-
 int roc_del_time_evt(roc_evt_loop *evt_loop, int64_t id);
-
 int roc_evt_loop_resize(roc_evt_loop *evt_loop, int newsize);
-
 int roc_get_evts(roc_evt_loop *evt_loop, int fd);
 
 #endif /* ROC_EVT_H */

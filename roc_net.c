@@ -1,4 +1,3 @@
-#include "roc_net.h"
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -15,6 +14,8 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
+
+#include "roc_net.h"
 
 int roc_set_fd_nonblock(int fd, int nonblock)
 {

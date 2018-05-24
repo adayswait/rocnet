@@ -30,6 +30,7 @@
 
 #include "roc_queue.h"
 #include "roc_threadpool.h"
+#include "roc_log.h"
 
 #define ROC_THREADPOOL_MAXSIZE 128
 
@@ -47,6 +48,7 @@ static inline void roc_sem_post(sem_t *sem)
 {
     if (sem_post(sem))
     {
+        ROC_LOG_STDERR("abort at %s (%s:%d)\n", __func__, __FILE__, __LINE__);
         abort();
     }
 }
@@ -55,6 +57,7 @@ static inline void roc_mutex_lock(pthread_mutex_t *mutex)
 {
     if (pthread_mutex_lock(mutex))
     {
+        ROC_LOG_STDERR("abort at %s (%s:%d)\n", __func__, __FILE__, __LINE__);
         abort();
     }
 }
@@ -63,6 +66,7 @@ static inline void roc_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
 {
     if (pthread_cond_wait(cond, mutex))
     {
+        ROC_LOG_STDERR("abort at %s (%s:%d)\n", __func__, __FILE__, __LINE__);
         abort();
     }
 }
@@ -71,12 +75,14 @@ static inline void roc_mutex_unlock(pthread_mutex_t *mutex)
 {
     if (pthread_mutex_unlock(mutex))
     {
+        ROC_LOG_STDERR("abort at %s (%s:%d)\n", __func__, __FILE__, __LINE__);
         abort();
     }
 }
 
 static void roc_cancelled_work(roc_work *w)
 {
+    ROC_LOG_STDERR("abort at %s (%s:%d)\n", __func__, __FILE__, __LINE__);
     abort();
 }
 
@@ -92,7 +98,10 @@ static size_t thread_stack_size(void)
     struct rlimit lim;
 
     if (getrlimit(RLIMIT_STACK, &lim))
+    {
+        ROC_LOG_STDERR("abort at %s (%s:%d)\n", __func__, __FILE__, __LINE__);
         abort();
+    }
 
     if (lim.rlim_cur != RLIM_INFINITY)
     {
@@ -128,11 +137,15 @@ int roc_thread_create(pthread_t *tid, void (*entry)(void *), void *arg)
 
         if (pthread_attr_init(attr))
         {
+            ROC_LOG_STDERR("abort at %s (%s:%d)\n",
+                           __func__, __FILE__, __LINE__);
             abort();
         }
 
         if (pthread_attr_setstacksize(attr, stack_size))
         {
+            ROC_LOG_STDERR("abort at %s (%s:%d)\n",
+                           __func__, __FILE__, __LINE__);
             abort();
         }
     }
@@ -157,6 +170,7 @@ void roc_sem_wait(sem_t *sem)
 
     if (r)
     {
+        ROC_LOG_STDERR("abort at %s (%s:%d)\n", __func__, __FILE__, __LINE__);
         abort();
     }
 }
@@ -165,6 +179,7 @@ void roc_sem_destroy(sem_t *sem)
 {
     if (sem_destroy(sem))
     {
+        ROC_LOG_STDERR("abort at %s (%s:%d)\n", __func__, __FILE__, __LINE__);
         abort();
     }
 }
@@ -243,6 +258,7 @@ static void roc_destory_threadpool()
     {
         if (pthread_join(*(threads + i), NULL))
         {
+            ROC_LOG_STDERR("abort at %s (%s:%d)\n", __func__, __FILE__, __LINE__);
             abort();
         }
     }
@@ -294,11 +310,13 @@ static void roc_init_threadpool(void)
 
     if (pthread_cond_init(&tpcond, NULL))
     {
+        ROC_LOG_STDERR("abort at %s (%s:%d)\n", __func__, __FILE__, __LINE__);
         abort();
     }
 
     if (pthread_mutex_init(&tpmutex, NULL))
     {
+        ROC_LOG_STDERR("abort at %s (%s:%d)\n", __func__, __FILE__, __LINE__);
         abort();
     }
 
@@ -306,6 +324,7 @@ static void roc_init_threadpool(void)
 
     if (sem_init(&sem, 0, 0))
     {
+        ROC_LOG_STDERR("abort at %s (%s:%d)\n", __func__, __FILE__, __LINE__);
         abort();
     }
 
@@ -313,6 +332,8 @@ static void roc_init_threadpool(void)
     {
         if (roc_thread_create(threads + i, roc_worker, &sem))
         {
+            ROC_LOG_STDERR("abort at %s (%s:%d)\n",
+                           __func__, __FILE__, __LINE__);
             abort();
         }
     }
@@ -335,6 +356,7 @@ static void roc_init_tponce(void)
 {
     if (pthread_atfork(NULL, NULL, &roc_reset_tponce))
     {
+        ROC_LOG_STDERR("abort at %s (%s:%d)\n", __func__, __FILE__, __LINE__);
         abort();
     }
     roc_init_threadpool();
