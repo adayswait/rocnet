@@ -11,7 +11,7 @@ int roc_init(const char *log_path, int log_level);
 
 参数 :
 
- *  **log_path (const char *)**
+ *  **log_path (const char \*)**
     日志记录的文件的路径
 
  *  **log_level (int)**
@@ -38,10 +38,10 @@ int roc_svr_use(roc_svr *svr, char *plugin_path);
 
 参数 :
 
- *  **svr (roc_svr *)**
+ *  **svr (roc_svr \*)**
     目标server
 
- *  **plugin_path (char *)**
+ *  **plugin_path (char \*)**
     中间件的路径
 
 返回值 : 成功返回0, 失败返回-1
@@ -53,7 +53,7 @@ void roc_svr_on(roc_svr *svr, int evt_type, roc_handle_func_link *handler);
 
 参数 :
 
- *  **svr (roc_svr *)**
+ *  **svr (roc_svr \*)**
     目标server
 
  *  **evt_type (int)**
@@ -71,7 +71,7 @@ int roc_svr_start(roc_svr *svr);
 
 参数 :
 
- *  **svr (roc_svr *)**
+ *  **svr (roc_svr \*)**
     目标server
 
 返回值 : 成功返回0, 失败返回-1
@@ -83,7 +83,7 @@ void roc_link_on(roc_link *link, int evt_type, roc_handle_func_link *handler);
 
 参数 :
 
- *  **link (roc_link *)**
+ *  **link (roc_link \*)**
     目标连接
 
  *  **evt_type (int)**
