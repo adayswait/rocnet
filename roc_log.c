@@ -55,7 +55,7 @@ static void roc_log_worker(void *arg)
 
         roc_ringbuf *rb = cell->rb;
 
-        uint32_t len = rb->tail - rb->head;
+        uint32_t len = roc_ringbuf_used(rb);
         uint32_t head_n = min(len, rb->size - (rb->head & (rb->size - 1)));
         if (head_n)
         {

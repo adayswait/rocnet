@@ -6,10 +6,11 @@
 #include "roc_svr.h"
 #include "roc_net.h"
 #include "roc_evt.h"
-#include "roc_threadpool.h"
 #include "roc_log.h"
 #include "roc_daemon.h"
 #include "roc_plugin.h"
+#include "roc_ringbuf.h"
+#include "roc_threadpool.h"
 
 #define MAX_LINK_PER_SVR 65535
 #define ROC_THREAD_MAX_NUM 1024
@@ -349,7 +350,7 @@ int roc_smart_send(roc_link *link, void *buf, int len)
         roc_ringbuf_write(rb, buf, len);
     }
 
-    uint32_t rblen = rb->tail - rb->head;
+    uint32_t rblen = roc_ringbuf_used(rb);
     uint32_t head_n = min(rblen, rb->size - (rb->head & (rb->size - 1)));
 
     int ret;
