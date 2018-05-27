@@ -59,7 +59,7 @@ void roc_svr_on(roc_svr *svr, int evt_type, roc_handle_func_link *handler);
  *  **evt_type (int)**
     事件类型,宏定义在roc_evt.h
 
- *  **handler (roc_handle_func_link)**
+ *  **handler (roc_handle_func_link \*)**
     事件处理器
 
 返回值 : void
@@ -89,7 +89,7 @@ void roc_link_on(roc_link *link, int evt_type, roc_handle_func_link *handler);
  *  **evt_type (int)**
     事件类型,宏定义在roc_evt.h
 
- *  **handler (roc_handle_func_link)**
+ *  **handler (roc_handle_func_link \*)**
     事件处理器
 
 返回值 : void
