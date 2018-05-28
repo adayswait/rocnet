@@ -1,3 +1,6 @@
+#ifndef ROC_H
+#define ROC_H
+
 
 /*** Start of inlined file: roc_log.h ***/
 #ifndef ROC_LOG_H
@@ -251,6 +254,14 @@ static inline int roc_ringbuf_resize(roc_ringbuf *self, uint32_t newsize)
 }
 
 /**
+ * 判断环形缓冲区已使用字节数
+ */
+static inline uint32_t roc_ringbuf_used(roc_ringbuf *self)
+{
+	return self->tail - self->head;
+}
+
+/**
  * 判断环形缓冲区空闲字节数
  */
 static inline uint32_t roc_ringbuf_unused(roc_ringbuf *self)
@@ -322,7 +333,7 @@ static inline uint32_t roc_ringbuf_readable(roc_ringbuf *self)
 #define ROC_LOG_LEVEL_INFO_PREFIX "[INFO]"
 #define ROC_LOG_LEVEL_DEBUG_PREFIX "[DEBUG]"
 
-int roc_log_level;
+extern int roc_log_level;
 typedef struct
 {
 	int status;
@@ -479,6 +490,7 @@ static inline int roc_set_sock_reuseaddr(int sockfd)
 }
 
 #endif /* ROC_NET_H */
+
 /*** End of inlined file: roc_net.h ***/
 
 
@@ -672,6 +684,7 @@ int register_data_plugin(roc_plugin *plugin_so, const char *so_path);
 void unregister_data_plugin(roc_plugin *plugin_so);
 
 #endif /* ROC_PLUGIN_H */
+
 /*** End of inlined file: roc_plugin.h ***/
 
 
@@ -792,6 +805,8 @@ typedef void *QUEUE[2];
 #define ROC_LOGCELL_READ 1
 #define ROC_LOGCELL_WRITE 2
 
+extern int roc_log_level = ROC_LOG_LEVEL_STDERR;
+
 pthread_mutex_t logmutex;
 pthread_cond_t logcond;
 pthread_t thread_id;
@@ -828,7 +843,7 @@ static void roc_log_worker(void *arg)
 
 		roc_ringbuf *rb = cell->rb;
 
-		uint32_t len = rb->tail - rb->head;
+		uint32_t len = roc_ringbuf_used(rb);
 		uint32_t head_n = min(len, rb->size - (rb->head & (rb->size - 1)));
 		if (head_n)
 		{
@@ -2787,6 +2802,7 @@ void roc_evt_loop_start(roc_evt_loop *evt_loop)
 		roc_process_evts(evt_loop, ROC_ALL_EVENTS);
 	}
 }
+
 /*** End of inlined file: roc_evt.c ***/
 
 
@@ -3313,7 +3329,7 @@ int roc_smart_send(roc_link *link, void *buf, int len)
 		roc_ringbuf_write(rb, buf, len);
 	}
 
-	uint32_t rblen = rb->tail - rb->head;
+	uint32_t rblen = roc_ringbuf_used(rb);
 	uint32_t head_n = min(rblen, rb->size - (rb->head & (rb->size - 1)));
 
 	int ret;
@@ -3400,4 +3416,6 @@ int roc_svr_stop(roc_svr *svr)
 }
 
 /*** End of inlined file: roc_svr.c ***/
+
+#endif /* ROC_H */
 

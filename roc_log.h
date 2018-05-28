@@ -23,7 +23,7 @@
 #define ROC_LOG_LEVEL_INFO_PREFIX "[INFO]"
 #define ROC_LOG_LEVEL_DEBUG_PREFIX "[DEBUG]"
 
-int roc_log_level;
+extern int roc_log_level;
 typedef struct
 {
     int status;

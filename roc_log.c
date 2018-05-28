@@ -19,6 +19,8 @@
 #define ROC_LOGCELL_READ 1
 #define ROC_LOGCELL_WRITE 2
 
+extern int roc_log_level = ROC_LOG_LEVEL_STDERR;
+
 pthread_mutex_t logmutex;
 pthread_cond_t logcond;
 pthread_t thread_id;

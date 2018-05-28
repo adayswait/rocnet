@@ -1,0 +1,11 @@
+#ifndef ROC_INTERFACE_H
+#define ROC_INTERFACE_H
+
+#include "./../roc_log.h"
+#include "./../roc_threadpool.h"
+#include "./../roc_net.h"
+#include "./../roc_evt.h"
+#include "./../roc_plugin.h"
+#include "./../roc_svr.h"
+
+#endif /* ROC_INTERFACE_H */
