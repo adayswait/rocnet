@@ -1,9 +1,15 @@
 # rocnet
-a simple network server framework
-C语言编写的多线程网络库
+* a header-only network server framework
 
+* C语言编写的多线程网络库
 
-ROC API
+## How to use?
+
+* 仅需要include一个头文件roc.h, 在include目录下
+
+* 示例程序在example目录下,使用rocnet实现了一个tcp echo server
+
+## ROC API
 ```
 int roc_init(const char *log_path, int log_level);
 ```

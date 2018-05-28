@@ -25,13 +25,16 @@ int main(int argc, char **argv)
     {
         return -1;
     }
-    ROC_LOG_INFO("server listening on port:%d\n", port);
+    
     roc_svr_use(svr, "./websocket.so");
     roc_svr_use(svr, "./echo.so");
     roc_svr_on(svr, ROC_SOCK_CONNECT, onconnect);
+    
     if (roc_svr_start(svr) == -1)
     {
         return -1;
     }
+    ROC_LOG_INFO("server listening on port:%d\n", port);
+
     return roc_run();
 }
