@@ -79,6 +79,14 @@ static inline int roc_ringbuf_resize(roc_ringbuf *self, uint32_t newsize)
 }
 
 /**
+ * 判断环形缓冲区已使用字节数
+ */
+static inline uint32_t roc_ringbuf_used(roc_ringbuf *self)
+{
+    return self->tail - self->head;
+}
+
+/**
  * 判断环形缓冲区空闲字节数
  */
 static inline uint32_t roc_ringbuf_unused(roc_ringbuf *self)
