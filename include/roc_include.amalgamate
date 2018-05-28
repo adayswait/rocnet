@@ -1,0 +1,13 @@
+#include "./../roc_log.h"
+#include "./../roc_threadpool.h"
+#include "./../roc_net.h"
+#include "./../roc_evt.h"
+#include "./../roc_plugin.h"
+#include "./../roc_svr.h"
+
+#include "./../roc_log.c"
+#include "./../roc_threadpool.c"
+#include "./../roc_net.c"
+#include "./../roc_evt.c"
+#include "./../roc_plugin.c"
+#include "./../roc_svr.c"
