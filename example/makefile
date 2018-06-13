@@ -1,2 +1,2 @@
 all:
-	gcc -pthread -ldl -Wall -o echo.x roc_echo.c
+	gcc -Wall -o echo.x roc_echo.c -pthread -ldl
