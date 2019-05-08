@@ -362,9 +362,6 @@ static void roc_init_tponce(void)
     roc_init_threadpool();
 }
 
-/**
- * roc_work *w 应指向栈空间,不能在堆空间创建,否则QUEUE会出错
- */
 void roc_tpwork_submit(roc_work *w,
                        void (*work)(roc_work *w),
                        void *data)
